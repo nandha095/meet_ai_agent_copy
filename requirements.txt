@@ -1,0 +1,47 @@
+# fastapi
+# uvicorn[standard]
+# python-dotenv
+# httpx
+# openai
+# pydantic
+# sqlalchemy
+# psycopg2-binary
+# pydantic[email]
+
+
+# FastAPI core
+fastapi
+uvicorn
+
+# Environment & settings
+python-dotenv
+
+# Database
+sqlalchemy
+
+# Google APIs
+google-api-python-client
+google-auth
+google-auth-oauthlib
+google-auth-httplib2
+
+# Email handling
+email-validator
+
+# AI (OpenAI)
+openai
+
+# Date & time parsing
+python-dateutil
+
+# HTTP utilities
+requests
+
+apscheduler
+
+google-generativeai
+
+pytz
+python-dateutil
+
+beautifulsoup4

@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+.env.*
+
+# Virtual environment
+myenv/
+venv/
+env/
+
+# Database
+*.db
+*.sqlite3
+
+# Credentials / tokens
+gmail_token.json
+credentials.json
+calendar_token.json
+client_secret.json
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
