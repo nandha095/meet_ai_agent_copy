@@ -270,13 +270,15 @@ from datetime import datetime, timedelta
 import pytz
 import re
 
+from app.ai import intent
 from app.services.gmail_reader import fetch_recent_emails
 from app.services.ai_intent import detect_meeting_intent
 from app.services.time_extractor import extract_time_and_timezone
 from app.services.meeting_service import create_google_meet
 from app.services.meeting_email_service import (
     send_meeting_link_email,
-    send_schedule_choice_email
+    send_schedule_choice_email,
+    send_not_interested_email
 )
 from app.services.email_cleaner import clean_email_body
 
@@ -382,6 +384,13 @@ def process_replies(db):
         db.add(reply)
         db.commit()
         db.refresh(reply)
+
+        # -------------------------------------------------
+        # 6️⃣ NOT INTERESTED → SEND CLOSING MAIL
+        # -------------------------------------------------
+        if intent["intent"] == "NO_INTEREST":
+            send_not_interested_email(sender_email)
+            continue
 
         # -------------------------------------------------
         # 7️⃣ YES → ASK FOR SCHEDULE

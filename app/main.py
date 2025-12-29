@@ -33,10 +33,10 @@ scheduler = BackgroundScheduler()
 
 @app.on_event("startup")
 def startup_event():
-    # 1️⃣ Initialize DB
+    # 1️ Initialize DB
     init_db()
 
-    # 2️⃣ Start scheduler safely
+    # 2️ Start scheduler safely
     if not scheduler.running:
         scheduler.add_job(
             run_reply_worker,

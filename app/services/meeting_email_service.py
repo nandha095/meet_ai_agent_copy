@@ -115,7 +115,7 @@ def send_meeting_link_email(
         f"{text_time}\n"
         "If this time doesn’t work for you, please reply to this email and we can reschedule.\n\n"
         "Best regards,\n"
-        "Nandhakumar"
+        "Nandhakumar P"
     )
 
     # -------------------------------------------------
@@ -144,6 +144,7 @@ def send_meeting_link_email(
 
         <p>
           <strong>Google Meet Link:</strong><br><br>
+          <h1>{meet_link}</h1>
           <a href="{meet_link}"
              style="
                display:inline-block;
@@ -166,7 +167,7 @@ def send_meeting_link_email(
 
         <p>
           Best regards,<br>
-          <strong>Nandhakumar</strong>
+          <strong>Nandhakumar P</strong>
         </p>
       </body>
     </html>
@@ -188,7 +189,7 @@ def send_schedule_choice_email(to_email):
         "   You can schedule\n\n"
         "Looking forward to connecting with you.\n\n"
         "Best regards,\n"
-        "Nandhakumar"
+        "Nandhakumar P"
     )
 
     body_html = """
@@ -215,10 +216,27 @@ def send_schedule_choice_email(to_email):
 
         <p>
           Best regards,<br>
-          <strong>Nandhakumar</strong>
+          <strong>Nandhakumar P</strong>
         </p>
       </body>
     </html>
     """
 
     send_email(to_email, subject, body_text, body_html)
+
+def send_not_interested_email(to_email: str):
+    subject = "Thank you for your response"
+
+    body = (
+        "Hi,\n\n"
+        "Thank you for letting us know.\n\n"
+        "No problem at all — if you’d like to connect in the future, "
+        "feel free to reach out anytime.\n\n"
+        "Wishing you all the best.\n\n"
+        "Best regards,\n"
+        "Nandhakumar"
+    )
+
+    send_email(to_email, subject, body)
+
+
