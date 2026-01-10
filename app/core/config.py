@@ -31,6 +31,7 @@ class Settings:
     EMAIL_PORT = int(os.getenv("EMAIL_PORT", 587))
     EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
     EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
+    JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
 
 
 settings = Settings()

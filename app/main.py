@@ -34,7 +34,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
 # --------------------
 # Routers
 # --------------------
@@ -44,7 +43,7 @@ app.include_router(webhooks.router, prefix="/webhooks", tags=["Webhooks"])
 app.include_router(replies.router, prefix="/replies", tags=["Replies"])
 app.include_router(auth.router)
 
-# ✅ ONLY THIS FOR GOOGLE AUTH
+#  ONLY THIS FOR GOOGLE AUTH
 app.include_router(auth.router, tags=["Auth"])
 
 

@@ -203,18 +203,18 @@ def send_schedule_choice_email(db: Session, user_id: int, to_email: str):
 
     subject = "Meeting Scheduling – Next Steps"
 
-    body_text = (
-        "Hi,\n\n"
-        "Thank you for your interest in our proposal.\n\n"
-        "To schedule our meeting, please choose one of the following:\n\n"
-        "1. Reply with your preferred date, time, and timezone\n"
-        "   Example: Friday, December 27th at 9:00 PM EST\n\n"
-        "2. Or simply reply with:\n"
-        "   You can schedule\n\n"
-        "Looking forward to connecting with you.\n\n"
-        "Best regards,\n"
-        "Nandhakumar P"
-    )
+    # body_text = (
+    #     "Hi,\n\n"
+    #     "Thank you for your interest in our proposal.\n\n"
+    #     "To schedule our meeting, please choose one of the following:\n\n"
+    #     "1. Reply with your preferred date, time, and timezone\n"
+    #     "   Example: Friday, December 27th at 9:00 PM EST\n\n"
+    #     "2. Or simply reply with:\n"
+    #     "   You can schedule\n\n"
+    #     "Looking forward to connecting with you.\n\n"
+    #     "Best regards,\n"
+    #     "Nandhakumar P"
+    # )
 
     body_html = """
     <html>
@@ -224,6 +224,7 @@ def send_schedule_choice_email(db: Session, user_id: int, to_email: str):
         <p>To schedule our meeting, please choose one of the following:</p>
         <ul>
           <li>Reply with your preferred <strong>date, time, and timezone</strong></li>
+          <li>Example: <em>Friday, December 27th at 9:00 PM EST</em></li>
           <li>Or reply with <strong>You can schedule</strong></li>
         </ul>
         <p>Looking forward to connecting.</p>
@@ -235,7 +236,7 @@ def send_schedule_choice_email(db: Session, user_id: int, to_email: str):
     msg = MIMEMultipart("alternative")
     msg["To"] = to_email
     msg["Subject"] = subject
-    msg.attach(MIMEText(body_text, "plain"))
+    # msg.attach(MIMEText(body_text, "plain"))
     msg.attach(MIMEText(body_html, "html"))
 
     raw = base64.urlsafe_b64encode(msg.as_bytes()).decode()
@@ -261,7 +262,7 @@ def send_not_interested_email(db: Session, user_id: int, to_email: str):
         "Best regards,\n"
         "Nandhakumar"
     )
-
+    
     msg = MIMEText(body, "plain")
     msg["To"] = to_email
     msg["Subject"] = subject

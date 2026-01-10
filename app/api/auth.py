@@ -9,13 +9,25 @@ from app.db.session import get_db
 from app.models.user import User
 from app.models.google_token import GoogleToken
 from app.services.gmail_auth import get_google_auth_flow
+# from app.services.email_service import send_system_email
+from app.services.email_service import send_system_email
+from app.core.config import settings
+from app.core.config import settings
+
+SECRET_KEY = settings.JWT_SECRET_KEY
+
+
+
+
 
 # --------------------
 # CONFIG
 # --------------------
-SECRET_KEY = "CHANGE_THIS_SECRET_LATER"
+# SECRET_KEY = "CHANGE_THIS_SECRET_LATER"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
+RESET_TOKEN_EXPIRE_MINUTES = 15
+
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -57,6 +69,14 @@ def get_current_user(
         raise HTTPException(status_code=401, detail="User not found")
 
     return user
+
+def create_password_reset_token(user_id: int):
+    payload = {
+        "sub": str(user_id),
+        "exp": datetime.utcnow() + timedelta(minutes=RESET_TOKEN_EXPIRE_MINUTES)
+    }
+    return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+
 
 # =========================================================
 # USER REGISTER
@@ -112,6 +132,58 @@ def login(
         "token_type": "bearer"
     }
 
+@router.post("/forgot-password")
+def forgot_password(email: str, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.email == email).first()
+
+    # IMPORTANT: Do not reveal if user exists
+    if not user:
+        return {"message": "If the email exists, a reset link has been sent"}
+
+    token = create_password_reset_token(user.id)
+
+    reset_link = f"http://localhost:3000/reset-password?token={token}"
+
+    send_system_email(
+        to_email=user.email,
+        subject="Reset your password",
+        body_text=f"Reset your password using this link:\n{reset_link}",
+        body_html=f"""
+        <p>Click the link below to reset your password:</p>
+        <a href="{reset_link}">Reset Password</a>
+        """
+)
+
+
+    return {"message": "If the email exists, a reset link has been sent"}
+
+
+@router.post("/reset-password")
+def reset_password(
+    token: str,
+    new_password: str,
+    db: Session = Depends(get_db)
+):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id = int(payload.get("sub"))
+    except JWTError:
+        raise HTTPException(status_code=400, detail="Invalid or expired token")
+
+    if len(new_password.encode("utf-8")) > 72:
+        raise HTTPException(status_code=400, detail="Password too long")
+
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    user.password_hash = hash_password(new_password)
+    db.commit()
+
+    return {"message": "Password reset successful"}
+
+
+
 # =========================================================
 # GOOGLE OAUTH (LOGGED-IN USER)
 # =========================================================
@@ -122,6 +194,7 @@ def google_login(current_user: User = Depends(get_current_user)):
     auth_url, state = flow.authorization_url(
     access_type="offline",
     prompt="consent",
+    # include_granted_scopes="true",
     state=str(current_user.id)
 )
 
@@ -167,3 +240,6 @@ def google_callback(
     db.commit()
 
     return {"message": "Google connected successfully"}
+
+
+
