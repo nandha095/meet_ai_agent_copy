@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Dashboard</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="container">
+  <h2>AI Meeting Scheduling Agent</h2>
+
+  <p id="google-status"></p>
+
+  <button onclick="connectGoogle()">Connect Google</button>
+
+  <div class="section">
+    <h3>Send Proposal</h3>
+
+    <input id="to_email" placeholder="Client Email">
+    <input id="subject" placeholder="Subject">
+    <textarea id="body" placeholder="Proposal message"></textarea>
+
+    <button onclick="sendProposal()">Send Proposal</button>
+  </div>
+</div>
+
+<script src="js/dashboard.js"></script>
+</body>
+</html>

@@ -1,134 +1,41 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>AI Meeting Agent</title>
+  <meta charset="UTF-8">
+  <title>Login | AI Meeting Scheduling Agent</title>
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="css/style.css">
 </head>
-<body style="font-family: Arial; padding: 30px">
+<body>
 
-<h2>AI Meeting Agent</h2>
+  <div class="container">
+    <h2>Login</h2>
 
-<!-- STEP 1: REGISTER -->
-<div id="register">
-  <h3>Step 1: Register</h3>
-  <input id="reg_email" placeholder="Email"><br><br>
-  <input id="reg_password" type="password" placeholder="Password"><br><br>
-  <button onclick="register()">Register</button>
-  <p id="register_msg"></p>
-</div>
+    <input
+      id="email"
+      type="email"
+      placeholder="Email"
+      autocomplete="username"
+    >
 
-<hr>
+    <input
+      id="password"
+      type="password"
+      placeholder="Password"
+      autocomplete="current-password"
+    >
 
-<!-- STEP 2: LOGIN -->
-<div id="login" style="display:none">
-  <h3>Step 2: Login</h3>
-  <input id="login_email" placeholder="Email"><br><br>
-  <input id="login_password" type="password" placeholder="Password"><br><br>
-  <button onclick="login()">Login</button>
-  <p id="login_msg"></p>
-</div>
+    <button onclick="login()">Login</button>
 
-<hr>
+    <!-- Register link INSIDE the card -->
+    <div class="section" style="text-align:center;">
+      <p>Don’t have an account?</p>
+      <a href="register.html">Register here</a>
+    </div>
+  </div>
 
-<!-- STEP 3: GOOGLE CONNECT -->
-<div id="google" style="display:none">
-  <h3>Step 3: Connect Google</h3>
-  <button onclick="connectGoogle()">Connect Google</button>
-  <p id="google_msg"></p>
-</div>
-
-<hr>
-
-<!-- STEP 4: SEND PROPOSAL -->
-<div id="proposal" style="display:none">
-  <h3>Step 4: Send Proposal</h3>
-  <input id="client_email" placeholder="Client Email"><br><br>
-  <input id="subject" placeholder="Subject"><br><br>
-  <textarea id="body" placeholder="Message"></textarea><br><br>
-  <button onclick="sendProposal()">Send Proposal</button>
-  <p id="proposal_msg"></p>
-</div>
-
-<script>
-const API = "http://127.0.0.1:8000";
-let token = null;
-
-// STEP 1
-async function register() {
-  const res = await fetch(`${API}/auth/register`, {
-    method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({
-      email: reg_email.value,
-      password: reg_password.value
-    })
-  });
-
-  if (res.ok) {
-    register_msg.innerText = "✅ Registered successfully";
-    login.style.display = "block";
-  } else {
-    register_msg.innerText = "❌ Registration failed";
-  }
-}
-
-// STEP 2
-async function login() {
-  const form = new FormData();
-  form.append("username", login_email.value);
-  form.append("password", login_password.value);
-
-  const res = await fetch(`${API}/auth/login`, {
-    method: "POST",
-    body: form
-  });
-
-  if (!res.ok) {
-    login_msg.innerText = "❌ Login failed";
-    return;
-  }
-
-  const data = await res.json();
-  token = data.access_token;
-
-  login_msg.innerText = "✅ Login successful";
-  google.style.display = "block";
-}
-
-// STEP 3
-async function connectGoogle() {
-  const res = await fetch(`${API}/auth/google/login`, {
-    headers: {
-      "Authorization": "Bearer " + token
-    }
-  });
-
-  const data = await res.json();
-  google_msg.innerText = "Redirecting to Google...";
-  window.location.href = data.auth_url;
-}
-
-// STEP 4
-async function sendProposal() {
-  const res = await fetch(`${API}/emails/send-proposal`, {
-    method: "POST",
-    headers: {
-      "Authorization": "Bearer " + token,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      client_email: client_email.value,
-      subject: subject.value,
-      body: body.value
-    })
-  });
-
-  if (res.ok) {
-    proposal_msg.innerText = "✅ Proposal sent. Agent will handle replies.";
-  } else {
-    proposal_msg.innerText = "❌ Failed to send proposal";
-  }
-}
-</script>
+  <script src="js/auth.js"></script>
 
 </body>
 </html>

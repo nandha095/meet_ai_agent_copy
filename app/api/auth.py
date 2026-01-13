@@ -14,7 +14,17 @@ from app.services.email_service import send_system_email
 from app.core.config import settings
 from app.core.config import settings
 
+from fastapi.responses import RedirectResponse
+from googleapiclient.discovery import build
+import os
+from google.oauth2 import id_token
+from google.auth.transport import requests
+
 SECRET_KEY = settings.JWT_SECRET_KEY
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
+
+if not GOOGLE_CLIENT_ID:
+    raise RuntimeError("GOOGLE_CLIENT_ID not set in environment")
 
 
 
@@ -132,6 +142,7 @@ def login(
         "token_type": "bearer"
     }
 
+#forgot password
 @router.post("/forgot-password")
 def forgot_password(email: str, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == email).first()
@@ -187,45 +198,126 @@ def reset_password(
 # =========================================================
 # GOOGLE OAUTH (LOGGED-IN USER)
 # =========================================================
+# @router.get("/google/login")
+# def google_login(current_user: User = Depends(get_current_user)):
+#     flow = get_google_auth_flow()
+
+#     auth_url, state = flow.authorization_url(
+#     access_type="offline",
+#     prompt="consent",
+#     # include_granted_scopes="true",
+#     state=str(current_user.id)
+# )
+
+#     return {"auth_url": auth_url}
+
+
+
+# Google OAuth login endpoint to connect Google account
 @router.get("/google/login")
-def google_login(current_user: User = Depends(get_current_user)):
+def google_login():
     flow = get_google_auth_flow()
 
-    auth_url, state = flow.authorization_url(
+    auth_url, _ = flow.authorization_url(
     access_type="offline",
     prompt="consent",
-    # include_granted_scopes="true",
-    state=str(current_user.id)
+    include_granted_scopes="true"
 )
 
-    return {"auth_url": auth_url}
+
+    return RedirectResponse(auth_url)
+
+
+
+
+# @router.get("/google/callback")
+# def google_callback(
+#     code: str,
+#     state: str,
+#     db: Session = Depends(get_db)
+# ):
+#     print("🔥 GOOGLE CALLBACK HIT")
+
+#     user_id = int(state)
+#     user = db.query(User).filter(User.id == user_id).first()
+#     if not user:
+#         raise HTTPException(status_code=404, detail="User not found")
+
+#     flow = get_google_auth_flow()
+#     flow.fetch_token(code=code)  # ⚠️ warning is now ignored
+#     creds = flow.credentials
+
+#     if not creds.refresh_token:
+#         raise HTTPException(
+#             status_code=400,
+#             detail="No refresh token received. Re-consent required."
+#         )
+
+#     db.query(GoogleToken).filter(
+#         GoogleToken.user_id == user.id
+#     ).delete()
+
+#     token = GoogleToken(
+#         user_id=user.id,
+#         access_token=creds.token,
+#         refresh_token=creds.refresh_token,
+#         token_uri=creds.token_uri,
+#         scopes=" ".join(creds.scopes),
+#         expiry=creds.expiry
+#     )
+
+#     db.add(token)
+#     db.commit()
+
+#     return {"message": "Google connected successfully"}
+
+
 
 @router.get("/google/callback")
 def google_callback(
     code: str,
-    state: str,
     db: Session = Depends(get_db)
 ):
     print("🔥 GOOGLE CALLBACK HIT")
 
-    user_id = int(state)
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-
     flow = get_google_auth_flow()
-    flow.fetch_token(code=code)  # ⚠️ warning is now ignored
+    flow.fetch_token(code=code)
     creds = flow.credentials
 
-    if not creds.refresh_token:
+    if not creds.id_token:
         raise HTTPException(
             status_code=400,
-            detail="No refresh token received. Re-consent required."
+            detail="No ID token received from Google"
+        )
+
+    from google.oauth2 import id_token
+    from google.auth.transport import requests
+
+    idinfo = id_token.verify_oauth2_token(
+        creds.id_token,
+        requests.Request(),
+        GOOGLE_CLIENT_ID
+    )
+
+    google_email = idinfo.get("email")
+
+    if not google_email:
+        raise HTTPException(
+            status_code=400,
+            detail="Unable to fetch Google email"
+        )
+
+    user = db.query(User).filter(User.email == google_email).first()
+    if not user:
+        raise HTTPException(
+            status_code=403,
+            detail="Please login before connecting Google"
         )
 
     db.query(GoogleToken).filter(
         GoogleToken.user_id == user.id
-    ).delete()
+    ).delete(synchronize_session=False)
+    db.commit()
 
     token = GoogleToken(
         user_id=user.id,
@@ -239,7 +331,6 @@ def google_callback(
     db.add(token)
     db.commit()
 
-    return {"message": "Google connected successfully"}
-
-
-
+    return RedirectResponse(
+    url="http://127.0.0.1:5500/frontend/dashboard.html"
+)

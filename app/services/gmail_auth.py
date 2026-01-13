@@ -2,11 +2,23 @@ import os
 from google_auth_oauthlib.flow import Flow
 from app.core.config import settings
 
+# SCOPES = [
+#     "https://www.googleapis.com/auth/gmail.send",
+#     "https://www.googleapis.com/auth/gmail.readonly",
+#     "https://www.googleapis.com/auth/calendar"
+# ]
+
 SCOPES = [
-    "https://www.googleapis.com/auth/gmail.send",
+    "openid",
+    "https://www.googleapis.com/auth/userinfo.email",
+    "https://www.googleapis.com/auth/userinfo.profile",
+
     "https://www.googleapis.com/auth/gmail.readonly",
+    "https://www.googleapis.com/auth/gmail.send",
     "https://www.googleapis.com/auth/calendar"
 ]
+
+
 
 
 BASE_DIR = os.path.dirname(

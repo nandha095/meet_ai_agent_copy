@@ -1,47 +1,38 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Register - AI Meeting Agent</title>
+  <meta charset="UTF-8">
+  <title>Register | AI Meeting Scheduling Agent</title>
+  <link rel="stylesheet" href="css/style.css">
 </head>
-<body style="font-family: Arial; padding: 40px">
+<body>
 
-<h2>Register</h2>
+  <div class="container">
+    <h2>Create Account</h2>
 
-<label>Email</label><br>
-<input id="email" placeholder="Enter email"><br><br>
+    <input
+      id="email"
+      type="email"
+      placeholder="Email"
+      autocomplete="username"
+    >
 
-<label>Password</label><br>
-<input id="password" type="password" placeholder="Enter password"><br><br>
+    <input
+      id="password"
+      type="password"
+      placeholder="Password"
+      autocomplete="new-password"
+    >
 
-<button onclick="register()">Register</button>
+    <button onclick="register()">Register</button>
 
-<p id="message"></p>
+    <div class="section" style="text-align:center;">
+      <p>Already have an account?</p>
+      <a href="index.html">Login here</a>
+    </div>
+  </div>
 
-<script>
-const API = "http://127.0.0.1:8000";
-
-async function register() {
-  const res = await fetch(`${API}/auth/register`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      email: document.getElementById("email").value,
-      password: document.getElementById("password").value
-    })
-  });
-
-  if (res.ok) {
-    document.getElementById("message").innerText =
-      "✅ Registered successfully";
-  } else {
-    const data = await res.json();
-    document.getElementById("message").innerText =
-      "❌ " + (data.detail || "Registration failed");
-  }
-}
-</script>
+  <script src="js/auth.js"></script>
 
 </body>
 </html>
