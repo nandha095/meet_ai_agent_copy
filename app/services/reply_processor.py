@@ -199,7 +199,10 @@ import re
 from app.services.ai_intent import detect_meeting_intent
 from app.services.time_extractor import extract_time_and_timezone
 from app.services.llm_extractor import llm_extract_intent_and_time
+
 from app.services.meeting_service import create_google_meet
+from app.services.teams_meeting_service import create_teams_meeting
+
 from app.services.email_cleaner import clean_email_body
 from app.services.timezone_utils import (
     convert_client_time_to_ist,
@@ -220,30 +223,33 @@ from app.models.user import User
 from app.email_provider.factory import get_email_provider
 
 
-# -------------------------------------------------
+# -------------------------------------------------------------------
 # CONFIG
-# -------------------------------------------------
+# -------------------------------------------------------------------
 IST_TZ = pytz.timezone("Asia/Kolkata")
 
-RELATIVE_WORDS = [
+SYSTEM_SENDERS = ("no-reply@", "noreply@", "mailer-daemon@")
+
+VALID_SUBJECT_KEYWORDS = (
+    "proposal",
+    "project proposal",
+    "meeting",
+    "schedule",
+    "re:",
+)
+
+RELATIVE_WORDS = (
     "today", "tomorrow", "next",
     "monday", "tuesday", "wednesday",
     "thursday", "friday", "saturday", "sunday",
     "morning", "evening", "afternoon",
-]
-
-PROPOSAL_SUBJECT_KEYWORDS = [
-    "proposal",
-    "project",
-    "meeting",
-    "schedule",
-]
+)
 
 
-# -------------------------------------------------
+# -------------------------------------------------------------------
 # HELPERS
-# -------------------------------------------------
-def extract_email_address(sender: str) -> str:
+# -------------------------------------------------------------------
+def extract_email(sender: str) -> str:
     if not sender:
         return ""
     match = re.search(r"<(.+?)>", sender)
@@ -251,145 +257,257 @@ def extract_email_address(sender: str) -> str:
     return email.strip().lower()
 
 
-def normalize_email(email: str) -> str:
-    return email.strip().lower() if email else ""
-
-
-# -------------------------------------------------
-# MAIN REPLY PROCESSOR
-# -------------------------------------------------
+# -------------------------------------------------------------------
+# MAIN PROCESSOR
+# -------------------------------------------------------------------
 def process_replies(db, user_id: int):
 
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         return
 
-    # 🔥 Decide provider for reading
-    reader_provider = get_email_provider(user.email_provider)
+    print(f"\n👤 Processing replies for user: {user.email}")
 
-    emails = reader_provider.fetch_recent_emails(db, user_id)
+    # 1️⃣ Get active proposals
+    proposals = (
+        db.query(Proposal)
+        .filter(
+            Proposal.user_id == user_id,
+            Proposal.status != "MEETING_SCHEDULED",
+        )
+        .all()
+    )
 
-    for email in emails:
-        try:
-            message_id = email["message_id"]
-            sender_email = extract_email_address(email.get("from"))
-            subject = (email.get("subject") or "").lower()
+    if not proposals:
+        print("ℹ️ No active proposals")
+        return
 
-            # Skip auto emails
-            if sender_email.startswith(("no-reply@", "noreply@")):
-                continue
+    # 2️⃣ Group proposals by provider
+    provider_map = {}
+    for p in proposals:
+        provider = p.provider or "google"
+        provider_map.setdefault(provider, []).append(p)
 
-            if db.query(Reply).filter(
-                Reply.gmail_message_id == message_id,
-                Reply.user_id == user_id
-            ).first():
-                continue
+    # 3️⃣ Process inbox per provider
+    for provider_name, _ in provider_map.items():
 
-            body = clean_email_body(email.get("body", ""))
-            if not body:
-                continue
+        if provider_name not in ("google", "outlook"):
+            print("⚠️ Unknown provider:", provider_name)
+            continue
 
-            rule_intent = detect_meeting_intent(body)
+        provider = get_email_provider(provider_name)
+        print(f"📤 Reading inbox using {provider_name.upper()}")
 
-            proposal = (
-                db.query(Proposal)
-                .filter(
-                    Proposal.user_id == user_id,
-                    Proposal.client_email.ilike(sender_email)
+        emails = provider.fetch_recent_emails(db, user_id)
+
+        for email in emails:
+            try:
+                message_id = email.get("message_id")
+                sender_email = extract_email(email.get("from"))
+                subject = (email.get("subject") or "").lower()
+
+                print("📩 Checking:", sender_email, "|", subject)
+
+                #  Skip system emails
+                if sender_email and sender_email.startswith(SYSTEM_SENDERS):
+                    continue
+
+                #  Skip own sent mails
+                if sender_email and sender_email == user.email.lower():
+                    continue
+
+                #  Skip unrelated subjects
+                if subject and not any(k in subject for k in VALID_SUBJECT_KEYWORDS):
+                    continue
+
+                #  Deduplication
+                if db.query(Reply).filter(
+                    Reply.gmail_message_id == message_id,
+                    Reply.user_id == user_id,
+                ).first():
+                    continue
+
+                body = clean_email_body(email.get("body", ""))
+                if not body:
+                    continue
+
+                # 4️⃣ Find matching proposal
+                proposal = (
+                    db.query(Proposal)
+                    .filter(
+                        Proposal.user_id == user_id,
+                        Proposal.provider == provider_name,
+                        Proposal.client_email.ilike(f"%{sender_email}%"),
+                    )
+                    .order_by(Proposal.created_at.desc())
+                    .first()
                 )
-                .order_by(Proposal.created_at.desc())
-                .first()
-            )
 
-            if not proposal:
-                continue
+                if not proposal:
+                    print("⚠️ No matching proposal for:", sender_email)
+                    continue
 
-            provider = get_email_provider(proposal.provider)
+                # 5️⃣ Detect intent (rule-based)
+                rule_intent = detect_meeting_intent(body)
 
-            reply = Reply(
-                user_id=user_id,
-                proposal_id=proposal.id,
-                gmail_message_id=message_id,
-                sender=email.get("from"),
-                subject=email.get("subject"),
-                body=body,
-                meeting_interest=rule_intent["intent"] != "NO_INTEREST",
-            )
+                reply = Reply(
+                    user_id=user_id,
+                    proposal_id=proposal.id,
+                    gmail_message_id=message_id,
+                    sender=email.get("from"),
+                    subject=email.get("subject"),
+                    body=body,
+                    meeting_interest=rule_intent["intent"] != "NO_INTEREST",
+                    confidence=rule_intent.get("confidence", 0.8),
+                )
 
-            db.add(reply)
-            db.commit()
-
-            # ❌ NO INTEREST
-            if rule_intent["intent"] == "NO_INTEREST":
-                proposal.status = "REJECTED"
+                db.add(reply)
                 db.commit()
-                send_not_interested_email(
-                    db, user_id, sender_email, proposal.provider
-                )
-                continue
+                db.refresh(reply)
 
-            # ⏰ ASK TIME
-            if proposal.status != "WAITING_FOR_TIME":
-                proposal.status = "WAITING_FOR_TIME"
+                # ❌ NO INTEREST
+                if rule_intent["intent"] == "NO_INTEREST":
+                    proposal.status = "REJECTED"
+                    db.commit()
+
+                    send_not_interested_email(
+                        db=db,
+                        user_id=user_id,
+                        to_email=sender_email,
+                        provider=provider_name,
+                    )
+                    continue
+
+                # ✅ FIRST ACCEPT → ASK FOR TIME
+                if proposal.status != "WAITING_FOR_TIME":
+                    proposal.status = "WAITING_FOR_TIME"
+                    db.commit()
+
+                    send_schedule_choice_email(
+                        db=db,
+                        user_id=user_id,
+                        to_email=sender_email,
+                        provider=provider_name,
+                    )
+                    continue
+
+                # ------------------------------------------------------------------
+                # 6️⃣ SECOND REPLY → TIME PARSING (100% SAFE)
+                # ------------------------------------------------------------------
+                client_dt = None
+                ist_dt = None
+                client_timezone = None
+
+                extracted = (
+                extract_time_and_timezone(body)
+                if body and not any(w in body.lower() for w in RELATIVE_WORDS)
+                else None
+        )
+
+                if extracted and isinstance(extracted, dict):
+                    client_dt = extracted.get("client_datetime")
+                    ist_dt = extracted.get("ist_datetime")
+                    client_timezone = extracted.get("client_timezone")
+
+                else:
+                    llm = llm_extract_intent_and_time(body)
+                    print("🤖 OPENAI PARSED RESULT:", llm)
+
+                    if isinstance(llm, dict) and llm.get("time") and llm.get("timezone"):
+                        tz = llm.get("timezone", "America/New_York")
+                        result = None
+
+                        if llm.get("calendar_relative"):
+                            result = convert_calendar_relative_to_ist(
+                                llm["time"], tz, llm["calendar_relative"]
+                            )
+
+                        elif llm.get("relative_day"):
+                            result = convert_client_time_to_ist(
+                                llm["time"],
+                                tz,
+                                llm["relative_day"],
+                                llm.get("relative_modifier"),
+                            )
+
+                        if result and isinstance(result, (tuple, list)):
+                            client_dt, ist_dt = result
+                            client_timezone = tz
+
+                # ❌ If still not understood → ask again
+                if not ist_dt:
+                    print("⚠️ Time not understood, asking again")
+                    send_schedule_choice_email(
+                        db=db,
+                        user_id=user_id,
+                        to_email=sender_email,
+                        provider=provider_name,
+                    )
+                    continue
+
+                # ❌ Prevent duplicate meetings
+                if db.query(Meeting).filter(
+                    Meeting.reply_id == reply.id,
+                    Meeting.user_id == user_id,
+                ).first():
+                    continue
+
+                # ------------------------------------------------------------------
+                # 7️⃣ CREATE MEETING
+                # ------------------------------------------------------------------
+                if provider_name == "google":
+                    meeting_data = create_google_meet(
+                        db=db,
+                        user_id=user_id,
+                        summary="Project Proposal – Discussion",
+                        description="Meeting scheduled after client confirmation",
+                        start_time=ist_dt,
+                        duration_minutes=30,
+                    )
+                    meeting_link = meeting_data["meet_link"]
+
+                else:  # outlook - use Google Meet as fallback
+                    meeting_data = create_google_meet(
+                        db=db,
+                        user_id=user_id,
+                        summary="Project Proposal – Discussion",
+                        description="Meeting scheduled after client confirmation",
+                        start_time=ist_dt,
+                        duration_minutes=30,
+                    )
+                    meeting_link = meeting_data["meet_link"]
+
+                meeting = Meeting(
+                    user_id=user_id,
+                    proposal_id=proposal.id,
+                    reply_id=reply.id,
+                    meet_link=meeting_link,
+                    start_time=meeting_data["start_time"],
+                    end_time=meeting_data["end_time"],
+                )
+
+                db.add(meeting)
+                proposal.status = "MEETING_SCHEDULED"
                 db.commit()
-                send_schedule_choice_email(
-                    db, user_id, sender_email, proposal.provider
+
+                # ------------------------------------------------------------------
+                # 8️⃣ SEND MEETING LINK EMAIL
+                # ------------------------------------------------------------------
+                send_meeting_link_email(
+                    db=db,
+                    user_id=user_id,
+                    to_email=sender_email,
+                    meet_link=meeting_link,
+                    client_time=client_dt,
+                    ist_time=ist_dt,
+                    client_timezone=client_timezone,
+                    provider=provider_name,
                 )
-                continue
 
-            # 🧠 TIME EXTRACTION
-            extracted = extract_time_and_timezone(body)
-            if extracted:
-                ist_dt = extracted["ist_datetime"]
-                client_dt = extracted["client_datetime"]
-                tz = extracted["client_timezone"]
-            else:
-                llm = llm_extract_intent_and_time(body)
-                client_dt, ist_dt = convert_calendar_relative_to_ist(
-                    llm["time"],
-                    llm.get("timezone", "America/New_York"),
-                    llm.get("calendar_relative")
-                )
-                tz = llm.get("timezone")
+                print("✅ Meeting scheduled successfully")
 
-            if not ist_dt:
-                ist_dt = datetime.now(IST_TZ) + timedelta(minutes=30)
-
-            meeting_data = create_google_meet(
-                db=db,
-                user_id=user_id,
-                summary="Project Proposal – Discussion",
-                description="Meeting scheduled after client confirmation",
-                start_time=ist_dt,
-                duration_minutes=30,
-            )
-
-            meeting = Meeting(
-                user_id=user_id,
-                proposal_id=proposal.id,
-                reply_id=reply.id,
-                meet_link=meeting_data["meet_link"],
-                start_time=meeting_data["start_time"],
-                end_time=meeting_data["end_time"],
-            )
-
-            db.add(meeting)
-            proposal.status = "MEETING_SCHEDULED"
-            db.commit()
-
-            send_meeting_link_email(
-                db=db,
-                user_id=user_id,
-                to_email=sender_email,
-                meet_link=meeting.meet_link,
-                client_time=client_dt,
-                ist_time=ist_dt,
-                client_timezone=tz,
-                provider=proposal.provider
-            )
-
-            print("✅ Meeting scheduled & email sent")
-
-        except Exception as e:
-            db.rollback()
-            print("❌ Reply processing error:", e)
+            except Exception as e:
+                db.rollback()
+                import traceback
+                print("❌ Reply processing error:", e)
+                traceback.print_exc()

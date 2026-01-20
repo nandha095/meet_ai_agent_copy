@@ -3,12 +3,9 @@ from app.email_provider.outlook_provider import OutlookProvider
 
 
 def get_email_provider(provider: str):
-    """
-    provider: 'google' or 'outlook'
-    """
-    if provider == "outlook":
-        print("📤 Using OutlookProvider")
+    if provider == "gmail" or provider == "google":
+        return GmailProvider()
+    elif provider == "outlook":
         return OutlookProvider()
-
-    print("📤 Using GmailProvider")
-    return GmailProvider()
+    else:
+        raise ValueError(f"Unknown email provider: {provider}")

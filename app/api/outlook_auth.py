@@ -28,10 +28,18 @@ SCOPES = [
     "profile",
     "email",
     "offline_access",
+
+    # Email
     "Mail.Read",
     "Mail.Send",
+
+    # Calendar + Teams ( REQUIRED)
+    "Calendars.ReadWrite",
+    "OnlineMeetings.ReadWrite",
+
     "User.Read",
 ]
+
 
 # =====================================================
 # OUTLOOK LOGIN

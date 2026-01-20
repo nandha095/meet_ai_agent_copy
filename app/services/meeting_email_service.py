@@ -390,6 +390,7 @@ def send_meeting_link_email(
 
         <p>
           <a href="{meet_link}"
+          
              style="
                display:inline-block;
                padding:12px 20px;
