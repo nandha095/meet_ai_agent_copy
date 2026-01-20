@@ -10,14 +10,32 @@ function connectGoogle() {
     return;
   }
 
-  // 🧠 AI status message
   const statusEl = document.getElementById("ai-status");
   if (statusEl) {
     statusEl.innerText = "🤖 Connecting to Google... AI preparing access";
   }
 
-  // Redirect to backend Google OAuth
   window.location.href = "http://127.0.0.1:8000/auth/google/login";
+}
+
+/****************************
+ * OUTLOOK CONNECT
+ ****************************/
+function connectOutlook() {
+  const token = localStorage.getItem("token");
+
+  if (!token) {
+    alert("Please login first");
+    return;
+  }
+
+  const statusEl = document.getElementById("ai-status");
+  if (statusEl) {
+    statusEl.innerText = "🤖 Connecting to Outlook... AI preparing access";
+  }
+
+  window.location.href =
+    `http://127.0.0.1:8000/auth/outlook/login?token=${token}`;
 }
 
 /****************************
@@ -31,18 +49,21 @@ async function sendProposal() {
     return;
   }
 
-  // 🧠 AI action message
   const actionEl = document.getElementById("ai-action");
   if (actionEl) {
     actionEl.innerText =
       "🧠 AI is sending proposal and will monitor replies automatically...";
   }
 
+  // ✅ FIX: provider added
   const payload = {
-    email: document.getElementById("to_email").value,
-    subject: document.getElementById("subject").value,
-    body: document.getElementById("body").value
-  };
+  email: document.getElementById("to_email").value,
+  subject: document.getElementById("subject").value,
+  body: document.getElementById("body").value,
+  provider: document.getElementById("provider").value // 🔥 NEW
+};
+
+
 
   try {
     const response = await fetch(
@@ -60,20 +81,14 @@ async function sendProposal() {
     const data = await response.json();
 
     if (response.ok) {
-      if (actionEl) {
-        actionEl.innerText =
-          "✅ Proposal sent. AI will read replies and schedule the meeting automatically.";
-      }
+      actionEl.innerText =
+        `✅ Proposal sent via ${payload.provider.toUpperCase()}. AI is active.`;
     } else {
-      if (actionEl) {
-        actionEl.innerText = "❌ AI failed to send proposal.";
-      }
+      actionEl.innerText = "❌ AI failed to send proposal.";
       alert(data.detail || "Failed to send proposal");
     }
   } catch (error) {
-    if (actionEl) {
-      actionEl.innerText = "❌ Network error. AI could not reach server.";
-    }
+    actionEl.innerText = "❌ Network error. AI could not reach server.";
     alert("Network error");
   }
 }

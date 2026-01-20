@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>AI Meeting Scheduling Agent</title>
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
 
@@ -23,42 +23,46 @@
 
     <!-- Connect Google -->
     <button class="google-btn" onclick="connectGoogle()">
-  <img
-    src="https://developers.google.com/identity/images/g-logo.png"
-    alt="Google"
-    class="google-icon"
-  />
-  <span>Connect Google</span>
-</button>
+      <img
+        src="https://developers.google.com/identity/images/g-logo.png"
+        alt="Google"
+        class="google-icon"
+      />
+      <span>Connect Google</span>
+    </button>
+
+    <!-- Connect Outlook -->
+    <button class="google-btn" onclick="connectOutlook()">
+      <span>📧 Connect Outlook</span>
+    </button>
 
     <!-- Divider -->
     <div class="divider"></div>
 
     <!-- AI Workflow -->
     <div class="ai-flow">
-  <p class="ai-flow-title">🧠 How the AI works</p>
+      <p class="ai-flow-title">🧠 How the AI works</p>
 
-  <div class="ai-step">
-    <span class="step-number">1.</span>
-    <span class="step-text">Send proposal from your Gmail</span>
-  </div>
+      <div class="ai-step">
+        <span class="step-number">1.</span>
+        <span class="step-text">Send proposal from your email</span>
+      </div>
 
-  <div class="ai-step">
-    <span class="step-number">2.</span>
-    <span class="step-text">AI reads and understands client reply</span>
-  </div>
+      <div class="ai-step">
+        <span class="step-number">2.</span>
+        <span class="step-text">AI reads and understands client reply</span>
+      </div>
 
-  <div class="ai-step">
-    <span class="step-number">3.</span>
-    <span class="step-text">AI schedules Google Meet automatically</span>
-  </div>
+      <div class="ai-step">
+        <span class="step-number">3.</span>
+        <span class="step-text">AI schedules meeting automatically</span>
+      </div>
 
-  <div class="ai-step">
-    <span class="step-number">4.</span>
-    <span class="step-text">AI sends meeting link to both sides</span>
-  </div>
-</div>
-
+      <div class="ai-step">
+        <span class="step-number">4.</span>
+        <span class="step-text">AI sends meeting link to both sides</span>
+      </div>
+    </div>
 
     <!-- Divider -->
     <div class="divider"></div>
@@ -66,8 +70,15 @@
     <!-- Send Proposal -->
     <h3>Send Proposal</h3>
 
-    <input id="to_email" placeholder="Client Email">
-    <input id="subject" placeholder="Subject">
+    <!-- ✅ NEW: Provider Selection -->
+    <select id="provider">
+    <option value="google">Send via Gmail</option>
+    <option value="outlook">Send via Outlook</option>
+    </select>
+
+
+    <input id="to_email" placeholder="Client Email" />
+    <input id="subject" placeholder="Subject" />
     <textarea id="body" placeholder="Proposal message"></textarea>
 
     <button onclick="sendProposal()">🚀 Send Proposal</button>

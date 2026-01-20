@@ -109,8 +109,9 @@
 #         return extracted
 
 #     except Exception as e:
-#         print("❌ LLM extraction failed:", e)
+#         print(" LLM extraction failed:", e)
 #         return None
+
 import os
 import json
 from typing import Optional

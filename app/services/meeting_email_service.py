@@ -280,49 +280,88 @@
 
 #temporary file
 
-import base64
 from datetime import datetime
-import pytz
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 from sqlalchemy.orm import Session
 
-from app.services.gmail_reader import get_gmail_service
-
-
-IST = pytz.timezone("Asia/Kolkata")
+from app.email_provider.factory import get_email_provider
 
 
 # -------------------------------------------------
-# UTILITY: ENSURE DATETIME
+# INTERNAL HELPER
 # -------------------------------------------------
-def ensure_datetime(value, tz=IST):
+def _send_email(
+    db: Session,
+    user_id: int,
+    to_email: str,
+    subject: str,
+    body_html: str,
+    provider: str,
+):
     """
-    Converts string → datetime if needed
+    Unified email sender
+    Routes email through Gmail or Outlook based on provider
     """
-    if value is None:
-        return None
+    email_provider = get_email_provider(provider)
 
-    if isinstance(value, datetime):
-        return value
-
-    if isinstance(value, str):
-        try:
-            dt = datetime.fromisoformat(value)
-        except ValueError:
-            # time-only string like "20:00" should NOT reach here
-            return None
-
-        if dt.tzinfo is None:
-            dt = tz.localize(dt)
-
-        return dt
-
-    return None
+    email_provider.send_email(
+        db=db,
+        user_id=user_id,
+        to_email=to_email,
+        subject=subject,
+        body_html=body_html,
+        body_text=None,
+    )
 
 
 # -------------------------------------------------
-# SEND MEETING LINK EMAIL
+# ASK CLIENT FOR TIME
+# -------------------------------------------------
+def send_schedule_choice_email(
+    db: Session,
+    user_id: int,
+    to_email: str,
+    provider: str,
+):
+    subject = "Meeting Scheduling – Next Steps"
+
+    body_html = """
+    <html>
+      <body style="font-family: Arial, sans-serif; color: #333;">
+        <p>Hi,</p>
+
+        <p>Thank you for your interest in our proposal.</p>
+
+        <p>
+          Please reply with your preferred
+          <strong>date, time, and timezone</strong>.
+        </p>
+
+        <p>
+          <b>Example:</b> Tomorrow 8 PM EST
+        </p>
+
+        <p>Looking forward to connecting.</p>
+
+        <p>
+          Best regards,<br>
+          <strong>Nandhakumar P</strong>
+        </p>
+      </body>
+    </html>
+    """
+
+    _send_email(
+        db=db,
+        user_id=user_id,
+        to_email=to_email,
+        subject=subject,
+        body_html=body_html,
+        provider=provider,
+    )
+
+
+# -------------------------------------------------
+# SEND MEETING LINK
 # -------------------------------------------------
 def send_meeting_link_email(
     db: Session,
@@ -331,55 +370,16 @@ def send_meeting_link_email(
     meet_link: str,
     client_time,
     ist_time,
-    client_timezone
+    client_timezone,
+    provider: str,
 ):
-    service = get_gmail_service(db, user_id)
-
     subject = "Meeting Scheduled – Google Meet Link"
 
-    # ✅ Normalize datetime inputs
-    ist_time = ensure_datetime(ist_time)
-    client_dt = ensure_datetime(client_time) if isinstance(client_time, str) is False else None
-
-    # -------- TEXT VERSION --------
-    if client_dt and client_timezone:
-        text_time = (
-            f"Meeting Time ({client_timezone}):\n"
-            f"{client_dt.strftime('%d %b %Y, %I:%M %p')} {client_timezone}\n\n"
-            f"Meeting Time (IST):\n"
-            f"{ist_time.strftime('%d %b %Y, %I:%M %p')} IST\n"
-        )
-    else:
-        text_time = (
-            f"Meeting Time (IST):\n"
-            f"{ist_time.strftime('%d %b %Y, %I:%M %p')} IST\n"
-        )
-
-    body_text = (
-        "Hi,\n\n"
-        "Your meeting has been scheduled successfully.\n\n"
-        "Google Meet Link:\n"
-        f"{meet_link}\n\n"
-        f"{text_time}\n"
-        "If this time doesn’t work for you, please reply to this email and we can reschedule.\n\n"
-        "Best regards,\n"
-        "Nandhakumar P"
-    )
-
-    # -------- HTML VERSION --------
-    if client_dt and client_timezone:
-        html_time = f"""
-        <p><strong>Meeting Time ({client_timezone}):</strong><br>
-        {client_dt.strftime('%d %b %Y, %I:%M %p')} {client_timezone}</p>
-
-        <p><strong>Meeting Time (IST):</strong><br>
-        {ist_time.strftime('%d %b %Y, %I:%M %p')} IST</p>
-        """
-    else:
-        html_time = f"""
-        <p><strong>Meeting Time (IST):</strong><br>
-        {ist_time.strftime('%d %b %Y, %I:%M %p')} IST</p>
-        """
+    # Safe formatting
+    def fmt(dt):
+        if isinstance(dt, datetime):
+            return dt.strftime("%d %b %Y, %I:%M %p")
+        return "—"
 
     body_html = f"""
     <html>
@@ -389,7 +389,6 @@ def send_meeting_link_email(
         <p><strong>Your meeting has been scheduled successfully.</strong></p>
 
         <p>
-          <strong>Google Meet Link:</strong><br><br>
           <a href="{meet_link}"
              style="
                display:inline-block;
@@ -404,10 +403,18 @@ def send_meeting_link_email(
           </a>
         </p>
 
-        {html_time}
+        <p>
+          <strong>Client Time ({client_timezone or 'Local'}):</strong><br>
+          {fmt(client_time)}
+        </p>
 
         <p>
-          If this time doesn’t work for you, simply reply to this email and we can reschedule.
+          <strong>Meeting Time (IST):</strong><br>
+          {fmt(ist_time)} IST
+        </p>
+
+        <p>
+          If this time doesn’t work for you, just reply to this email and we’ll reschedule.
         </p>
 
         <p>
@@ -418,89 +425,52 @@ def send_meeting_link_email(
     </html>
     """
 
-    msg = MIMEMultipart("alternative")
-    msg["To"] = to_email
-    msg["Subject"] = subject
-    msg.attach(MIMEText(body_text, "plain"))
-    msg.attach(MIMEText(body_html, "html"))
+    _send_email(
+        db=db,
+        user_id=user_id,
+        to_email=to_email,
+        subject=subject,
+        body_html=body_html,
+        provider=provider,
+    )
 
-    raw = base64.urlsafe_b64encode(msg.as_bytes()).decode()
-
-    service.users().messages().send(
-        userId="me",
-        body={"raw": raw}
-    ).execute()
 
 # -------------------------------------------------
-# ASK CLIENT TO SHARE TIME (GMAIL API)
+# NOT INTERESTED EMAIL
 # -------------------------------------------------
-def send_schedule_choice_email(db, user_id: int, to_email: str):
-    service = get_gmail_service(db, user_id)
-
-    subject = "Meeting Scheduling – Next Steps"
+def send_not_interested_email(
+    db: Session,
+    user_id: int,
+    to_email: str,
+    provider: str,
+):
+    subject = "Thank you for your response"
 
     body_html = """
     <html>
-      <body style="font-family: Arial, sans-serif;">
+      <body style="font-family: Arial, sans-serif; color: #333;">
         <p>Hi,</p>
 
-        <p>Thank you for your interest in our proposal.</p>
+        <p>Thank you for letting us know.</p>
 
-        <p>To schedule our meeting, please choose one of the following:</p>
+        <p>
+          No problem at all — if you’d like to connect in the future,
+          feel free to reach out anytime.
+        </p>
 
-        <ul>
-          <li>
-            Reply with your preferred <strong>date, time, and timezone</strong><br>
-            <em>Example: Friday, December 27th at 9:00 PM EST</em>
-          </li>
-          <li>
-            Or simply reply with <strong>You can schedule</strong>
-          </li>
-        </ul>
-
-        <p>Looking forward to connecting.</p>
-
-        <p><strong>Nandhakumar P</strong></p>
+        <p>
+          Best regards,<br>
+          <strong>Nandhakumar P</strong>
+        </p>
       </body>
     </html>
     """
 
-    msg = MIMEMultipart("alternative")
-    msg["To"] = to_email
-    msg["Subject"] = subject
-    msg.attach(MIMEText(body_html, "html"))
-
-    raw = base64.urlsafe_b64encode(msg.as_bytes()).decode()
-
-    service.users().messages().send(
-        userId="me",
-        body={"raw": raw}
-    ).execute()
-
-# -------------------------------------------------
-# NOT INTERESTED EMAIL (GMAIL API)
-# -------------------------------------------------
-def send_not_interested_email(db, user_id: int, to_email: str):
-    service = get_gmail_service(db, user_id)
-
-    subject = "Thank you for your response"
-
-    body_text = (
-        "Hi,\n\n"
-        "Thank you for letting us know.\n\n"
-        "No problem at all — if you’d like to connect in the future, "
-        "feel free to reach out anytime.\n\n"
-        "Best regards,\n"
-        "Nandhakumar P"
+    _send_email(
+        db=db,
+        user_id=user_id,
+        to_email=to_email,
+        subject=subject,
+        body_html=body_html,
+        provider=provider,
     )
-
-    msg = MIMEText(body_text, "plain")
-    msg["To"] = to_email
-    msg["Subject"] = subject
-
-    raw = base64.urlsafe_b64encode(msg.as_bytes()).decode()
-
-    service.users().messages().send(
-        userId="me",
-        body={"raw": raw}
-    ).execute()

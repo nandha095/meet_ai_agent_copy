@@ -65,11 +65,12 @@ WEEKDAYS = {
     "sunday": 6,
 }
 
+
 def convert_client_time_to_ist(
     time_str: str,
     timezone: str,
     weekday: str,
-    modifier: str = None,   # <-- IMPORTANT
+    modifier: str = None,
 ):
     client_tz = pytz.timezone(timezone)
     ist_tz = pytz.timezone("Asia/Kolkata")
@@ -78,14 +79,11 @@ def convert_client_time_to_ist(
     today_weekday = now_client.weekday()
     target_weekday = WEEKDAYS[weekday.lower()]
 
-    # Days until target weekday
     days_ahead = (target_weekday - today_weekday) % 7
 
-    # If same day, move to next week
     if days_ahead == 0:
         days_ahead = 7
 
-    # 🔥 HANDLE "NEXT"
     if modifier == "next":
         days_ahead += 7
 
@@ -113,22 +111,22 @@ def convert_calendar_relative_to_ist(
     timezone: str,
     calendar_relative: str,
 ):
-    """
-    Handles: today / tomorrow
-    Example: "Tomorrow at 10 AM EST"
-    """
-
     client_tz = pytz.timezone(timezone)
     ist_tz = pytz.timezone("Asia/Kolkata")
 
     now_client = datetime.now(client_tz)
 
+    # ✅ normalize parameter INSIDE function
+    calendar_relative = calendar_relative.lower().strip()
+
     if calendar_relative == "today":
         base_date = now_client.date()
+
     elif calendar_relative == "tomorrow":
         base_date = (now_client + timedelta(days=1)).date()
+
     else:
-        raise ValueError("Unsupported calendar_relative value")
+        raise ValueError(f"Unsupported calendar_relative value: {calendar_relative}")
 
     hour, minute = map(int, time_str.split(":"))
 

@@ -161,3 +161,59 @@ button:hover {
   margin-bottom: 16px;
   box-sizing: border-box;
 }
+/* ============================
+   OUTLOOK CONNECT SECTION
+   ============================ */
+
+/* Outlook card wrapper */
+.outlook-card {
+  margin-top: 22px;
+  padding: 20px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #5b5fc7, #6f72ff);
+  box-shadow: 0 14px 28px rgba(91, 95, 199, 0.25);
+  text-align: center;
+  color: #ffffff;
+}
+
+/* Outlook title */
+.outlook-card h3 {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+/* Outlook description */
+.outlook-card p {
+  font-size: 13px;
+  opacity: 0.9;
+  margin-bottom: 14px;
+}
+
+/* Outlook connect button */
+.outlook-btn {
+  width: 100%;
+  padding: 12px;
+  background: #ffffff;
+  color: #5b5fc7;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+/* Outlook hover effect */
+.outlook-btn:hover {
+  box-shadow: 0 0 16px rgba(255, 255, 255, 0.6);
+  transform: translateY(-1px);
+}
+
+/* Optional Outlook icon */
+.outlook-icon {
+  width: 18px;
+  height: 18px;
+  vertical-align: middle;
+  margin-right: 6px;
+}

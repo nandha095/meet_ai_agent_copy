@@ -1,10 +1,12 @@
 from pydantic import BaseModel, EmailStr
 
 #  proposal email request
+
 class ProposalEmailRequest(BaseModel):
-    email: EmailStr
+    email: str
     subject: str
     body: str
+    provider: str
 
 #  Forgot password request
 class ForgotPasswordRequest(BaseModel):
@@ -15,3 +17,4 @@ class ForgotPasswordRequest(BaseModel):
 class ResetPasswordRequest(BaseModel):
     token: str
     new_password: str
+

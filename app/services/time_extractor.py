@@ -81,5 +81,6 @@ def extract_time_and_timezone(text: str):
     return {
         "client_datetime": client_dt,
         "ist_datetime": ist_dt,
-        "client_timezone": tz_name
+        "client_timezone": tz_name,
+        "timezone": tz_name,
     }

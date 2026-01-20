@@ -17,8 +17,10 @@ from app.services.reply_worker import run_reply_worker
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from fastapi.middleware.cors import CORSMiddleware
-
-
+from app.api.outlook_auth import router as outlook_auth_router
+from fastapi.staticfiles import StaticFiles
+app: FastAPI = FastAPI()
+app.mount("/", StaticFiles(directory="frontend", html=True), name="frontend")
 from app.api import auth
 app = FastAPI(
     title="AI Meeting Agent",
@@ -41,10 +43,12 @@ app.include_router(emails.router, prefix="/emails", tags=["Emails"])
 app.include_router(meeting.router, prefix="/meetings", tags=["Meetings"])
 app.include_router(webhooks.router, prefix="/webhooks", tags=["Webhooks"])
 app.include_router(replies.router, prefix="/replies", tags=["Replies"])
-app.include_router(auth.router)
+# app.include_router(auth.router)
 
 #  ONLY THIS FOR GOOGLE AUTH
 app.include_router(auth.router, tags=["Auth"])
+app.include_router(outlook_auth_router)
+
 
 
 # --------------------
