@@ -12,7 +12,7 @@ from app.services.gmail_auth import get_google_auth_flow
 # from app.services.email_service import send_system_email
 from app.services.email_service import send_system_email
 from app.core.config import settings
-from app.core.config import settings
+
 
 from fastapi.responses import RedirectResponse
 from googleapiclient.discovery import build

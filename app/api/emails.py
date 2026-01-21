@@ -27,7 +27,7 @@ def send_proposal(
     if provider_name not in ("google", "outlook"):
         raise HTTPException(400, "Invalid provider")
 
-    # 🔐 Ensure provider is connected
+    #  Ensure provider is connected
     if provider_name == "google":
         token = db.query(GoogleToken).filter(
             GoogleToken.user_id == current_user.id
@@ -54,7 +54,7 @@ def send_proposal(
         body_text=payload.body,
     )
 
-    # ✅ SAVE PROPOSAL (SOURCE OF TRUTH)
+    #  SAVE PROPOSAL (SOURCE OF TRUTH)
     proposal = Proposal(
         user_id=current_user.id,
         client_email=payload.email.lower(),

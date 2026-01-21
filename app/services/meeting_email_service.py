@@ -325,30 +325,45 @@ def send_schedule_choice_email(
     subject = "Meeting Scheduling – Next Steps"
 
     body_html = """
-    <html>
-      <body style="font-family: Arial, sans-serif; color: #333;">
-        <p>Hi,</p>
+<html>
+  <body style="font-family: Arial, sans-serif; color: #333;">
+    <p>Hi,</p>
 
-        <p>Thank you for your interest in our proposal.</p>
+    <p>Thank you for your interest in our proposal.</p>
 
-        <p>
-          Please reply with your preferred
-          <strong>date, time, and timezone</strong>.
-        </p>
+    <p>
+      Please reply with your preferred
+      <strong>date, time, and timezone</strong>.
+    </p>
 
-        <p>
-          <b>Example:</b> Tomorrow 8 PM EST
-        </p>
+    <p>
+      <strong>Examples:</strong><br>
+      Tomorrow at 8:00 PM EST<br>
+      Friday, December 27th at 9:00 PM EST
+    </p>
 
-        <p>Looking forward to connecting.</p>
+    <p>
+      Alternatively, you may simply reply with:
+      <strong>"You can schedule"</strong>
+    </p>
 
-        <p>
-          Best regards,<br>
-          <strong>Nandhakumar P</strong>
-        </p>
-      </body>
-    </html>
-    """
+    <p>
+      <strong>Note:</strong>
+      If you choose you can schedule option, the meeting will be scheduled to begin
+      <strong>30 minutes after your reply</strong>,
+      and the meeting link will be sent to you.
+    </p>
+
+    <p>Looking forward to connecting.</p>
+
+    <p>
+      Best regards,<br>
+      <strong>Nandhakumar P</strong>
+    </p>
+  </body>
+</html>
+"""
+
 
     _send_email(
         db=db,
@@ -384,7 +399,7 @@ def send_meeting_link_email(
     body_html = f"""
     <html>
       <body style="font-family: Arial, sans-serif; color: #333;">
-        <p>Hi,</p>
+        <p>Hi, From Schedule meeting agent</p>
 
         <p><strong>Your meeting has been scheduled successfully.</strong></p>
 

@@ -491,12 +491,39 @@ def process_replies(db, user_id: int):
                 db.commit()
 
                 # ------------------------------------------------------------------
-                # 8️⃣ SEND MEETING LINK EMAIL
+                # 8️ SEND MEETING LINK EMAIL
                 # ------------------------------------------------------------------
                 send_meeting_link_email(
                     db=db,
                     user_id=user_id,
                     to_email=sender_email,
+                    meet_link=meeting_link,
+                    client_time=client_dt,
+                    ist_time=ist_dt,
+                    client_timezone=client_timezone,
+                    provider=provider_name,
+                )
+
+                # Send to CLIENT
+                send_meeting_link_email(
+                    db=db,
+                    user_id=user_id,
+                    to_email=sender_email,
+                    meet_link=meeting_link,
+                    client_time=client_dt,
+                    ist_time=ist_dt,
+                    client_timezone=client_timezone,
+                    provider=provider_name,
+                )
+
+                # Send to USER (You)
+                user = db.query(User).filter(User.id == user_id).first()
+                user_email = user.email
+                
+                send_meeting_link_email(
+                    db=db,
+                    user_id=user_id,
+                    to_email=user_email,
                     meet_link=meeting_link,
                     client_time=client_dt,
                     ist_time=ist_dt,

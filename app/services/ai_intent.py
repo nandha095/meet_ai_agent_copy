@@ -64,7 +64,8 @@ interest_phrases = [
     "approved", "confirmed",
     "yes please", "okay thanks", "sure thanks", "thanks, yes", "happy to move forward", 
     "glad to proceed", "let's do it", "let us proceed", "excited to start",
-    "we agree", "we are on board", "proceed as discussed",
+    "we agree", "we are on board", "proceed as discussed","looking forward to working together",
+    "great, let's proceed", "let's get started","im interested","interested in moving forward",
 ]
 
 NO_INTEREST_PATTERNS = [
@@ -83,6 +84,8 @@ NO_INTEREST_PATTERNS = [
     r"\bwe are not interested\b",
     r"\bdecline\b",
     r"\bdeclined\b",
+    r"\breject\b",
+    r"\brejected\b",
 ]
 
 def detect_meeting_intent(text: str):

@@ -119,6 +119,7 @@ button:hover {
 
 /* Google connect button */
 .google-btn {
+  position: relative;
   width: 100%;
   display: flex;
   align-items: center;
@@ -192,17 +193,27 @@ button:hover {
 
 /* Outlook connect button */
 .outlook-btn {
+  position: relative;
   width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+
   padding: 12px;
   background: #ffffff;
-  color: #5b5fc7;
-  border: none;
-  border-radius: 8px;
+
+  border: 1px solid #dadce0;   
+  border-radius: 8px;         
+
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 500;
+  color: #3c4043;
+
   cursor: pointer;
   transition: all 0.25s ease;
 }
+
 
 /* Outlook hover effect */
 .outlook-btn:hover {
@@ -217,3 +228,7 @@ button:hover {
   vertical-align: middle;
   margin-right: 6px;
 }
+
+
+
+
