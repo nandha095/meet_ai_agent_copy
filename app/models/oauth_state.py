@@ -15,3 +15,4 @@ class OAuthState(Base):
     @staticmethod
     def expiry(minutes: int = 10):
         return datetime.utcnow() + timedelta(minutes=minutes)
+    

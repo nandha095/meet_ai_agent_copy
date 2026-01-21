@@ -1,4 +1,13 @@
 /****************************
+ * HANDLE SESSION EXPIRY
+ ****************************/
+function handleSessionExpired() {
+  alert("Session expired. Please login again.");
+  localStorage.removeItem("token");
+  window.location.href = "index.html"; // login page
+}
+
+/****************************
  * GOOGLE CONNECT
  ****************************/
 function connectGoogle() {
@@ -15,6 +24,7 @@ function connectGoogle() {
     statusEl.innerText = "🤖 Connecting to Google... AI preparing access";
   }
 
+  // OAuth redirect (token validated in backend)
   window.location.href = "http://127.0.0.1:8000/auth/google/login";
 }
 
@@ -26,6 +36,7 @@ function connectOutlook() {
 
   if (!token) {
     alert("Please login first");
+    window.location.href = "index.html";
     return;
   }
 
@@ -46,6 +57,7 @@ async function sendProposal() {
 
   if (!token) {
     alert("Please login first");
+    window.location.href = "index.html";
     return;
   }
 
@@ -55,15 +67,12 @@ async function sendProposal() {
       "🧠 AI is sending proposal and will monitor replies automatically...";
   }
 
-  // ✅ FIX: provider added
   const payload = {
-  email: document.getElementById("to_email").value,
-  subject: document.getElementById("subject").value,
-  body: document.getElementById("body").value,
-  provider: document.getElementById("provider").value // 🔥 NEW
-};
-
-
+    email: document.getElementById("to_email").value,
+    subject: document.getElementById("subject").value,
+    body: document.getElementById("body").value,
+    provider: document.getElementById("provider").value
+  };
 
   try {
     const response = await fetch(
@@ -77,6 +86,12 @@ async function sendProposal() {
         body: JSON.stringify(payload)
       }
     );
+
+    // 🔥 JWT expired → redirect to login
+    if (response.status === 401) {
+      handleSessionExpired();
+      return;
+    }
 
     const data = await response.json();
 
@@ -109,6 +124,12 @@ async function checkGoogleStatus() {
         }
       }
     );
+
+    // 🔥 JWT expired → redirect to login
+    if (response.status === 401) {
+      handleSessionExpired();
+      return;
+    }
 
     const data = await response.json();
 

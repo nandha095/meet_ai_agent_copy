@@ -22,6 +22,8 @@ from fastapi.staticfiles import StaticFiles
 app: FastAPI = FastAPI()
 app.mount("/", StaticFiles(directory="frontend", html=True), name="frontend")
 from app.api import auth
+
+
 app = FastAPI(
     title="AI Meeting Agent",
     version="1.0.0"
