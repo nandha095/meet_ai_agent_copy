@@ -19,7 +19,7 @@ def create_google_meet(
     summary: str,
     description: str,
     start_time: datetime,
-    duration_minutes: int = 30,
+    duration_minutes: int = 60,
     timezone: str = "Asia/Kolkata",
 ):
     """

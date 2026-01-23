@@ -228,6 +228,60 @@ button:hover {
   vertical-align: middle;
   margin-right: 6px;
 }
+/* ============================
+   ATTACHMENT SECTION
+   ============================ */
+
+.attachment-wrapper {
+  text-align: left;
+  margin-bottom: 18px;
+}
+
+.attachment-label {
+  display: inline-block;
+  font-size: 14px;
+  font-weight: 500;
+  color: #444;
+  margin-bottom: 6px;
+  cursor: pointer;
+}
+
+/* Hide default ugly file input */
+.attachment-input {
+  width: 100%;
+  padding: 10px;
+  border: 1px dashed #c7c9cc;
+  border-radius: 8px;
+  background: #f8f9fa;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+/* Hover effect */
+.attachment-input:hover {
+  background: #eef3fd;
+  border-color: #1a73e8;
+}
+
+/* Selected file list */
+.file-list {
+  margin-top: 8px;
+  font-size: 13px;
+  color: #555;
+  line-height: 1.6;
+}
+
+/* Individual file item look */
+.file-list::before {
+  content: "Selected files:";
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: #777;
+  margin-bottom: 4px;
+}
+
 
 
 

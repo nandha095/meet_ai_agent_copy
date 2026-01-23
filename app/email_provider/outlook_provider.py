@@ -1,4 +1,5 @@
 import requests
+import base64
 from app.email_provider.base import EmailProvider
 from app.services.outlook_reader import fetch_outlook_emails
 from app.services.outlook_token_service import get_valid_outlook_access_token
@@ -17,6 +18,7 @@ class OutlookProvider(EmailProvider):
         subject: str,
         body_html: str,
         body_text: str = None,
+        attachments=None
     ):
         access_token = get_valid_outlook_access_token(db, user_id)
 
@@ -27,17 +29,34 @@ class OutlookProvider(EmailProvider):
             "Content-Type": "application/json",
         }
 
-        payload = {
-            "message": {
-                "subject": subject,
-                "body": {
-                    "contentType": "HTML",
-                    "content": body_html,
-                },
-                "toRecipients": [
-                    {"emailAddress": {"address": to_email}}
-                ],
+        message = {
+            "subject": subject,
+            "body": {
+                "contentType": "HTML",
+                "content": body_html,
             },
+            "toRecipients": [
+                {"emailAddress": {"address": to_email}}
+            ],
+        }
+
+        #  ADD ATTACHMENTS (IF ANY)
+        if attachments:
+            message["attachments"] = []
+
+            for file in attachments:
+                file_content = file.file.read()
+                encoded_content = base64.b64encode(file_content).decode("utf-8")
+
+                message["attachments"].append({
+                    "@odata.type": "#microsoft.graph.fileAttachment",
+                    "name": file.filename,
+                    "contentType": file.content_type or "application/octet-stream",
+                    "contentBytes": encoded_content
+                })
+
+        payload = {
+            "message": message,
             "saveToSentItems": True,
         }
 

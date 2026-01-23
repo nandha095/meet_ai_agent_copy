@@ -16,9 +16,11 @@ class GmailProvider(EmailProvider):
         subject: str,
         body_html: str,
         body_text: str = None,
+        attachments=None
     ):
         """
-        Uses existing Gmail proposal email logic
+        Sends Gmail proposal email using Gmail API
+        Supports file attachments
         """
 
         send_proposal_email(
@@ -27,4 +29,5 @@ class GmailProvider(EmailProvider):
             to_email=to_email,
             subject=subject,
             body=body_html,
+            attachments=attachments  #  THIS WAS MISSING
         )

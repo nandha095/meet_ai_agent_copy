@@ -70,7 +70,7 @@
     <!-- Send Proposal -->
     <h3>Send Proposal</h3>
 
-    <!-- ✅ NEW: Provider Selection -->
+    <!--  NEW: Provider Selection -->
     <select id="provider">
     <option value="google">Send via Gmail</option>
     <option value="outlook">Send via Outlook</option>
@@ -81,12 +81,41 @@
     <input id="subject" placeholder="Subject" />
     <textarea id="body" placeholder="Proposal message"></textarea>
 
+    <div class="attachment-wrapper">
+  <label for="attachment" class="attachment-label">
+    📎 Attach files (optional)
+  </label>
+
+  <input
+  type="file"
+  id="attachment"
+  name="attachments"
+  multiple
+/>
+
+
+
+  <div id="file-list" class="file-list"></div>
+</div>
+
+
+
     <button onclick="sendProposal()">🚀 Send Proposal</button>
 
     <!-- AI Action Message -->
     <p id="ai-action" class="ai-action"></p>
 
+<!-- Divider -->
+    <div class="divider"></div>
+
+    <!-- Proposal Status Section -->
+    <h3>Your Proposals</h3>
+
+    <div id="proposal-list"></div>
+
+
   </div>
+  
 
   <script src="js/dashboard.js"></script>
 </body>

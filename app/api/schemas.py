@@ -7,6 +7,8 @@ class ProposalEmailRequest(BaseModel):
     subject: str
     body: str
     provider: str
+    
+
 
 #  Forgot password request
 class ForgotPasswordRequest(BaseModel):
