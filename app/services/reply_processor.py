@@ -268,7 +268,7 @@ def process_replies(db, user_id: int):
 
     print(f"\n👤 Processing replies for user: {user.email}")
 
-    # 1️⃣ Get active proposals
+    # 1️ Get active proposals
     proposals = (
         db.query(Proposal)
         .filter(
@@ -282,13 +282,13 @@ def process_replies(db, user_id: int):
         print("ℹ️ No active proposals")
         return
 
-    # 2️⃣ Group proposals by provider
+    # 2️ Group proposals by provider
     provider_map = {}
     for p in proposals:
         provider = p.provider or "google"
         provider_map.setdefault(provider, []).append(p)
 
-    # 3️⃣ Process inbox per provider
+    # 3️ Process inbox per provider
     for provider_name, _ in provider_map.items():
 
         if provider_name not in ("google", "outlook"):
@@ -331,7 +331,7 @@ def process_replies(db, user_id: int):
                 if not body:
                     continue
 
-                # 4️⃣ Find matching proposal
+                # 4️ Find matching proposal
                 proposal = (
                     db.query(Proposal)
                     .filter(
@@ -347,7 +347,7 @@ def process_replies(db, user_id: int):
                     print("⚠️ No matching proposal for:", sender_email)
                     continue
 
-                # 5️⃣ Detect intent (rule-based)
+                # 5️ Detect intent (rule-based)
                 rule_intent = detect_meeting_intent(body)
 
                 reply = Reply(
@@ -365,7 +365,7 @@ def process_replies(db, user_id: int):
                 db.commit()
                 db.refresh(reply)
 
-                # ❌ NO INTEREST
+                #  NO INTEREST
                 if rule_intent["intent"] == "NO_INTEREST":
                     proposal.status = "REJECTED"
                     db.commit()
@@ -378,7 +378,7 @@ def process_replies(db, user_id: int):
                     )
                     continue
 
-                # ✅ FIRST ACCEPT → ASK FOR TIME
+                #  FIRST ACCEPT → ASK FOR TIME
                 if proposal.status != "WAITING_FOR_TIME":
                     proposal.status = "WAITING_FOR_TIME"
                     db.commit()
@@ -392,7 +392,7 @@ def process_replies(db, user_id: int):
                     continue
 
                 # ------------------------------------------------------------------
-                # 6️⃣ SECOND REPLY → TIME PARSING (100% SAFE)
+                # 6️ SECOND REPLY → TIME PARSING (100% SAFE)
                 # ------------------------------------------------------------------
                 client_dt = None
                 ist_dt = None
@@ -434,7 +434,7 @@ def process_replies(db, user_id: int):
                             client_dt, ist_dt = result
                             client_timezone = tz
 
-                # ❌ If still not understood → ask again
+                #  If still not understood → ask again
                 if not ist_dt:
                     print("⚠️ Time not understood, asking again")
                     send_schedule_choice_email(
@@ -445,7 +445,7 @@ def process_replies(db, user_id: int):
                     )
                     continue
 
-                # ❌ Prevent duplicate meetings
+                #  Prevent duplicate meetings
                 if db.query(Meeting).filter(
                     Meeting.reply_id == reply.id,
                     Meeting.user_id == user_id,
@@ -453,7 +453,7 @@ def process_replies(db, user_id: int):
                     continue
 
                 # ------------------------------------------------------------------
-                # 7️⃣ CREATE MEETING
+                # 7️ CREATE MEETING
                 # ------------------------------------------------------------------
                 if provider_name == "google":
                     meeting_data = create_google_meet(

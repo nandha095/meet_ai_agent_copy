@@ -17,8 +17,8 @@ def get_google_credentials(db: Session, user_id: int) -> Credentials:
         token=token.access_token,
         refresh_token=token.refresh_token,
         token_uri=token.token_uri,
-        client_id=settings.GOOGLE_CLIENT_ID,          # ✅ REQUIRED
-        client_secret=settings.GOOGLE_CLIENT_SECRET,  # ✅ REQUIRED
+        client_id=settings.GOOGLE_CLIENT_ID,          #  REQUIRED
+        client_secret=settings.GOOGLE_CLIENT_SECRET,  #  REQUIRED
         scopes=token.scopes.split()
     )
 

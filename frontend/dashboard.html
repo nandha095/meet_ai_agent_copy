@@ -20,19 +20,37 @@
     <div id="ai-status" class="ai-status">
       🔌 Google not connected
     </div>
+     
 
-    <!-- Connect Google -->
-    <button class="google-btn connected" onclick="connectGoogle()">
-    <img src="https://developers.google.com/identity/images/g-logo.png" class="google-icon" />
-    <span>Connect Google</span>
+   <!-- Google -->
+<button id="google-connect-btn" class="google-btn" onclick="connectGoogle()">
+  <img src="https://developers.google.com/identity/images/g-logo.png" class="google-icon" />
+  <span>Connect Google</span>
+</button>
+
+<button id="google-disconnect-btn"
+        class="disconnect-btn"
+        onclick="disconnectGoogle()"
+        style="display:none;">
+   Disconnect Google
 </button>
 
 
-    <!-- Connect Outlook -->
-    <button class="outlook-btn connected" onclick="connectOutlook()">
+
+    <!-- Outlook -->
+<button id="outlook-connect-btn" class="outlook-btn" onclick="connectOutlook()">
   <img src="https://upload.wikimedia.org/wikipedia/commons/4/44/Microsoft_logo.svg" class="outlook-icon" />
   <span>Connect Outlook</span>
 </button>
+
+<button id="outlook-disconnect-btn"
+        class="disconnect-btn"
+        onclick="disconnectOutlook()"
+        style="display:none;">
+   Disconnect Outlook
+</button>
+
+
 
 
 

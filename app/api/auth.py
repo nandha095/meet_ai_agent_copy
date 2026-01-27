@@ -12,8 +12,8 @@ from app.services.gmail_auth import get_google_auth_flow
 # from app.services.email_service import send_system_email
 from app.services.email_service import send_system_email
 from app.core.config import settings
-
-
+from jose import jwt
+from app.models.outlook_token import OutlookToken
 from fastapi.responses import RedirectResponse
 from googleapiclient.discovery import build
 import os
@@ -138,7 +138,7 @@ def register(email: str, password: str, db: Session = Depends(get_db)):
     return {"message": "User registered successfully"}
 
 # =========================================================
-# USER LOGIN (FIXED ✅)
+# USER LOGIN (FIXED )
 # =========================================================
 @router.post("/login")
 def login(
@@ -165,76 +165,6 @@ def login(
         "token_type": "bearer"
     }
 
-# #forgot password
-# @router.post("/forgot-password")
-# def forgot_password(email: str, db: Session = Depends(get_db)):
-#     user = db.query(User).filter(User.email == email).first()
-
-#     # IMPORTANT: Do not reveal if user exists
-#     if not user:
-#         return {"message": "If the email exists, a reset link has been sent"}
-
-#     token = create_password_reset_token(user.id)
-
-#     reset_link = f"http://localhost:3000/reset-password?token={token}"
-
-#     send_system_email(
-#         to_email=user.email,
-#         subject="Reset your password",
-#         body_text=f"Reset your password using this link:\n{reset_link}",
-#         body_html=f"""
-#         <p>Click the link below to reset your password:</p>
-#         <a href="{reset_link}">Reset Password</a>
-#         """
-# )
-
-
-#     return {"message": "If the email exists, a reset link has been sent"}
-
-
-# @router.post("/reset-password")
-# def reset_password(
-#     token: str,
-#     new_password: str,
-#     db: Session = Depends(get_db)
-# ):
-#     try:
-#         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-#         user_id = int(payload.get("sub"))
-#     except JWTError:
-#         raise HTTPException(status_code=400, detail="Invalid or expired token")
-
-#     if len(new_password.encode("utf-8")) > 72:
-#         raise HTTPException(status_code=400, detail="Password too long")
-
-#     user = db.query(User).filter(User.id == user_id).first()
-#     if not user:
-#         raise HTTPException(status_code=404, detail="User not found")
-
-#     user.password_hash = hash_password(new_password)
-#     db.commit()
-
-#     return {"message": "Password reset successful"}
-
-
-
-# # =========================================================
-# # GOOGLE OAUTH (LOGGED-IN USER)
-# # =========================================================
-# # @router.get("/google/login")
-# # def google_login(current_user: User = Depends(get_current_user)):
-# #     flow = get_google_auth_flow()
-
-# #     auth_url, state = flow.authorization_url(
-# #     access_type="offline",
-# #     prompt="consent",
-# #     # include_granted_scopes="true",
-# #     state=str(current_user.id)
-# # )
-
-# #     return {"auth_url": auth_url}
-
-
 
 # Google OAuth login endpoint to connect Google account
 @router.get("/google/login")
@@ -249,50 +179,6 @@ def google_login():
 
 
     return RedirectResponse(auth_url)
-
-
-
-
-# @router.get("/google/callback")
-# def google_callback(
-#     code: str,
-#     state: str,
-#     db: Session = Depends(get_db)
-# ):
-#     print("🔥 GOOGLE CALLBACK HIT")
-
-#     user_id = int(state)
-#     user = db.query(User).filter(User.id == user_id).first()
-#     if not user:
-#         raise HTTPException(status_code=404, detail="User not found")
-
-#     flow = get_google_auth_flow()
-#     flow.fetch_token(code=code)  # ⚠️ warning is now ignored
-#     creds = flow.credentials
-
-#     if not creds.refresh_token:
-#         raise HTTPException(
-#             status_code=400,
-#             detail="No refresh token received. Re-consent required."
-#         )
-
-#     db.query(GoogleToken).filter(
-#         GoogleToken.user_id == user.id
-#     ).delete()
-
-#     token = GoogleToken(
-#         user_id=user.id,
-#         access_token=creds.token,
-#         refresh_token=creds.refresh_token,
-#         token_uri=creds.token_uri,
-#         scopes=" ".join(creds.scopes),
-#         expiry=creds.expiry
-#     )
-
-#     db.add(token)
-#     db.commit()
-
-#     return {"message": "Google connected successfully"}
 
 
 
@@ -358,6 +244,7 @@ def google_callback(
     url="http://127.0.0.1:5500/frontend/dashboard.html"
 )
 
+# google connection status endpoint
 @router.get("/google/status")
 def google_status(
     current_user: User = Depends(get_current_user),
@@ -371,6 +258,53 @@ def google_status(
         "connected": bool(token)
     }
 
+# outlook connection status endpoint
+@router.get("/outlook/status")
+def outlook_status(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    token = db.query(OutlookToken).filter(
+        OutlookToken.user_id == current_user.id
+    ).first()
+
+    return {"connected": bool(token)}
+
+# google disconnect endpoint
+@router.post("/google/disconnect")
+def disconnect_google(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    token = db.query(GoogleToken).filter(
+        GoogleToken.user_id == current_user.id
+    ).first()
+
+    if token:
+        db.delete(token)
+        db.commit()
+
+    return {"disconnected": True}
+
+# outlook disconnect endpoint
+@router.post("/outlook/disconnect")
+def disconnect_outlook(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    token = db.query(OutlookToken).filter(
+        OutlookToken.user_id == current_user.id
+    ).first()
+
+    if token:
+        db.delete(token)
+        db.commit()
+
+    return {"disconnected": True}
+
+
+
+# forgot password and reset password endpoints
 @router.post("/forgot-password")
 def forgot_password(
     request: ForgotPasswordRequest,

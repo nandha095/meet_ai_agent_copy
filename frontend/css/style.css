@@ -349,3 +349,19 @@ button:hover {
   color: #b91c1c;
   border: 1px solid #fecaca;
 }
+
+.disconnect-btn {
+  margin-top: 6px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  background: #fee2e2;
+  color: #991b1b;
+  font-size: 13px;
+}
+
+.disconnect-btn:hover {
+  background: #fecaca;
+}
+

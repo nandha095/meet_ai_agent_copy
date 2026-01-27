@@ -21,7 +21,7 @@ def create_teams_meeting(
     - timezone MUST be the client's real timezone (e.g. America/New_York)
     """
 
-    # 🔐 Always fetch a valid (auto-refreshed) token
+    #  Always fetch a valid (auto-refreshed) token
     access_token = get_valid_outlook_access_token(db, user_id)
 
     if not access_token:
@@ -64,7 +64,7 @@ def create_teams_meeting(
     
     print("🔍 DEBUG - API Response:", data)  # ← ADD THIS LINE
 
-    # 🛡️ Safety check
+    #  Safety check
     if "onlineMeeting" not in data or not data.get("onlineMeeting") or "joinUrl" not in data["onlineMeeting"]:
         raise Exception("Teams meeting created but joinUrl missing")
 

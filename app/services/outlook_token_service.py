@@ -15,11 +15,11 @@ def get_valid_outlook_access_token(db, user_id: int) -> str:
     if not token:
         raise Exception("Outlook not connected")
 
-    # ✅ If token still valid → use it
+    #  If token still valid → use it
     if token.expires_at and token.expires_at > datetime.utcnow():
         return token.access_token
 
-    # 🔁 Refresh token
+    #  Refresh token
     res = requests.post(
         TOKEN_URL,
         data={
