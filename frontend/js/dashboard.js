@@ -1,3 +1,6 @@
+
+let proposalsVisible = false;
+
 /****************************
  * HANDLE SESSION EXPIRY
  ****************************/
@@ -123,15 +126,15 @@ async function sendProposal() {
       document.getElementById("attachment").value = "";
       document.getElementById("file-list").innerHTML = "";
 
-      // 🔥 Refresh proposal list
+      //  Refresh proposal list
       loadProposals();
     } else {
-      actionEl.innerText = "❌ Failed to send proposal.";
+      actionEl.innerText = " Failed to send proposal.";
       alert(data.detail || "Failed to send proposal");
     }
   } catch (error) {
     console.error(error);
-    actionEl.innerText = "❌ Network error.";
+    actionEl.innerText = " Network error.";
   }
 }
 
@@ -177,29 +180,44 @@ function renderProposals(proposals) {
   }
 
   proposals.forEach(p => {
-    let statusColor =
-      p.status === "MEETING_SCHEDULED" ? "green" :
-      p.status === "REJECTED" ? "red" :
-      "orange";
-
     container.innerHTML += `
       <div class="proposal-card">
         <div><b>To:</b> ${p.client_email}</div>
         <div><b>Subject:</b> ${p.subject}</div>
+
         <div>
           <b>Status:</b>
-          <span style="color:${statusColor}">
+          <span class="status ${p.status.toLowerCase()}">
             ${p.status}
           </span>
         </div>
-        <div class="proposal-meta">
-          ${new Date(p.created_at).toLocaleString()}
-          • ${p.provider.toUpperCase()}
+
+        <button class="view-btn" onclick="toggleProposalDetails(${p.id})">
+          View Details
+        </button>
+
+        <!-- Hidden details -->
+        <div id="details-${p.id}" class="proposal-details" style="display:none;">
+          <hr />
+          <p><b>Message:</b></p>
+          <p>${p.body || "—"}</p>
+
+          <p><b>Provider:</b> ${p.provider.toUpperCase()}</p>
+          <p><b>Sent at:</b> ${new Date(p.created_at).toLocaleString()}</p>
         </div>
       </div>
     `;
   });
 }
+
+function toggleProposalDetails(id) {
+  const el = document.getElementById(`details-${id}`);
+  if (!el) return;
+
+  el.style.display = el.style.display === "none" ? "block" : "none";
+}
+
+
 
 /****************************
  * FILE LIST PREVIEW
@@ -213,9 +231,26 @@ document.getElementById("attachment").addEventListener("change", function () {
   }
 });
 
-/****************************
- * PAGE LOAD
- ****************************/
-window.onload = () => {
-  loadProposals();
-};
+function toggleProposals() {
+  const list = document.getElementById("proposal-list");
+  const btn = document.getElementById("toggle-proposals-btn");
+
+  if (!list || !btn) return;
+
+  if (!proposalsVisible) {
+    // Show proposals
+    list.style.display = "block";
+    btn.innerText = " Hide Proposals";
+
+    // Load data ONLY when opening
+    loadProposals();
+  } else {
+    // Hide proposals
+    list.style.display = "none";
+    btn.innerText = "👁 View Proposals";
+  }
+
+  proposalsVisible = !proposalsVisible;
+}
+
+

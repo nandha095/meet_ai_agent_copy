@@ -71,7 +71,7 @@ def outlook_login(token: str, db: Session = Depends(get_db)):
         "scope": " ".join(SCOPES),
         "state": state,
 
-        # ✅ FIXED
+        #  FIXED
         "prompt": "select_account",
     }
 

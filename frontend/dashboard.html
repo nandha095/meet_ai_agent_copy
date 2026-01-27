@@ -93,8 +93,6 @@
   multiple
 />
 
-
-
   <div id="file-list" class="file-list"></div>
 </div>
 
@@ -109,9 +107,14 @@
     <div class="divider"></div>
 
     <!-- Proposal Status Section -->
-    <h3>Your Proposals</h3>
+    <h3>Your Proposal History</h3>
 
-    <div id="proposal-list"></div>
+    <button id="toggle-proposals-btn" onclick="toggleProposals()">
+        👁 View Proposals
+    </button>
+
+    <div id="proposal-list" style="display: none;"></div>
+
 
 
   </div>

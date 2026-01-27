@@ -282,7 +282,70 @@ button:hover {
   margin-bottom: 4px;
 }
 
+/* Proposal card */
+.proposal-card {
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  padding: 14px;
+  margin-bottom: 14px;
+  background: #ffffff;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.03);
+}
 
+/* View details button */
+.view-btn {
+  margin-top: 10px;
+  padding: 7px 14px;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  background: linear-gradient(135deg, #e0e7ff, #c7d2fe);
+  font-size: 13px;
+  font-weight: 500;
+  color: #1e3a8a;
+}
 
+.view-btn:hover {
+  background: linear-gradient(135deg, #c7d2fe, #a5b4fc);
+}
 
+/* Proposal details */
+.proposal-details {
+  margin-top: 12px;
+  font-size: 14px;
+  color: #333;
+  background: #f9fafb;
+  padding: 10px;
+  border-radius: 8px;
+}
 
+/* STATUS BADGES */
+.status {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 14px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+/* SENT */
+.status.sent {
+  background: #fff7ed;
+  color: #c2410c;
+  border: 1px solid #fed7aa;
+}
+
+/* MEETING SCHEDULED */
+.status.meeting_scheduled {
+  background: #ecfdf5;
+  color: #047857;
+  border: 1px solid #a7f3d0;
+}
+
+/* REJECTED */
+.status.rejected {
+  background: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
