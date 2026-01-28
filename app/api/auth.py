@@ -304,7 +304,7 @@ def disconnect_outlook(
 
 
 
-# forgot password and reset password endpoints
+# forgot password endpoints
 @router.post("/forgot-password")
 def forgot_password(
     request: ForgotPasswordRequest,
@@ -334,6 +334,7 @@ def forgot_password(
     return {"message": "If the email exists, a reset link has been sent"}
 
 
+# reset password endpoint
 @router.post("/reset-password")
 def reset_password(
     request: ResetPasswordRequest,

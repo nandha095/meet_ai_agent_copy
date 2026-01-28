@@ -15,3 +15,5 @@ class Reply(Base):
 
     meeting_interest = Column(Boolean, default=False)
     confidence = Column(Float, default=0.0)
+    llm_attempted = Column(Boolean, default=False)
+    
