@@ -337,6 +337,13 @@ def send_schedule_choice_email(
     </p>
 
     <p>
+      You may also include your
+      <strong>phone number</strong> if you’d like to receive
+      <strong>SMS updates</strong> about the meeting
+      <em>(optional)</em>.
+    </p>
+
+    <p>
       <strong>Examples:</strong><br>
       Tomorrow at 8:00 PM EST<br>
       Friday, December 27th at 9:00 PM EST
@@ -364,7 +371,6 @@ def send_schedule_choice_email(
 </html>
 """
 
-
     _send_email(
         db=db,
         user_id=user_id,
@@ -373,6 +379,7 @@ def send_schedule_choice_email(
         body_html=body_html,
         provider=provider,
     )
+
 
 
 # -------------------------------------------------
@@ -490,3 +497,64 @@ def send_not_interested_email(
         body_html=body_html,
         provider=provider,
     )
+
+def send_reschedule_options_email(
+    db,
+    user_id: int,
+    to_email: str,
+    provider: str,
+    requested_time,
+    alternative_times,
+):
+    subject = "Meeting Time Unavailable – Please Choose Another Slot"
+
+    options_html = ""
+    for dt in alternative_times:
+        options_html += f"<li>{dt.strftime('%d %b %Y, %I:%M %p')} IST</li>"
+
+    body_html = f"""
+    <html>
+      <body style="font-family: Arial, sans-serif;">
+        <p>Hi,</p>
+
+        <p>
+          Thank you for suggesting
+          <strong>{requested_time.strftime('%d %b %Y, %I:%M %p')} IST</strong>.
+        </p>
+
+        <p>
+          Unfortunately, this time is already booked.
+        </p>
+
+        <p>
+          Please choose one of the available time slots below:
+        </p>
+
+        <ul>
+          {options_html}
+        </ul>
+
+        <p>
+          Or simply reply with:
+          <strong>"You can schedule"</strong>
+        </p>
+
+        <p>
+          Best regards,<br>
+          <strong>Nandhakumar P</strong>
+        </p>
+      </body>
+    </html>
+    """
+
+    from app.services.meeting_email_service import _send_email
+
+    _send_email(
+        db=db,
+        user_id=user_id,
+        to_email=to_email,
+        subject=subject,
+        body_html=body_html,
+        provider=provider,
+    )
+

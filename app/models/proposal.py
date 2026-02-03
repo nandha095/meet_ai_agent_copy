@@ -16,3 +16,4 @@ class Proposal(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     
     provider = Column(String(20), nullable=False)  # "google" or "outlook"
+    client_phone = Column(String, nullable=True)

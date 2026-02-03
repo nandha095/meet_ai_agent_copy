@@ -1,27 +1,24 @@
 import warnings
-
-warnings.filterwarnings(
-    "ignore",
-    message="Scope has changed*"
-)
-
-
+warnings.filterwarnings("ignore", message="Scope has changed*")
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app.core.config import settings
 from app.db.init_db import init_db
 
 from app.api import emails, meeting, webhooks, replies, auth
+from app.api.outlook_auth import router as outlook_auth_router
+
+import sys
+import os
+from fastapi.staticfiles import StaticFiles
+from apscheduler.schedulers.background import BackgroundScheduler
 from app.services.reply_worker import run_reply_worker
 
-from apscheduler.schedulers.background import BackgroundScheduler
-from fastapi.middleware.cors import CORSMiddleware
-from app.api.outlook_auth import router as outlook_auth_router
-from fastapi.staticfiles import StaticFiles
-app: FastAPI = FastAPI()
-app.mount("/", StaticFiles(directory="frontend", html=True), name="frontend")
-from app.api import auth
+
+scheduler = BackgroundScheduler()
 
 
 app = FastAPI(
@@ -29,10 +26,12 @@ app = FastAPI(
     version="1.0.0"
 )
 
-
+# --------------------
+# Middleware
+# --------------------
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # for development
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -41,27 +40,38 @@ app.add_middleware(
 # --------------------
 # Routers
 # --------------------
+app.include_router(auth.router, tags=["Auth"])
+app.include_router(outlook_auth_router)
+
 app.include_router(emails.router, prefix="/emails", tags=["Emails"])
 app.include_router(meeting.router, prefix="/meetings", tags=["Meetings"])
 app.include_router(webhooks.router, prefix="/webhooks", tags=["Webhooks"])
 app.include_router(replies.router, prefix="/replies", tags=["Replies"])
-# app.include_router(auth.router)
 
-#  ONLY THIS FOR GOOGLE AUTH
-app.include_router(auth.router, tags=["Auth"])
-app.include_router(outlook_auth_router)
+if getattr(sys, "frozen", False):
+    # Running as EXE
+    BASE_DIR = sys._MEIPASS
+else:
+    # Running normally (uvicorn)
+    BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 
+FRONTEND_DIR = os.path.join(BASE_DIR, "frontend")
+
+
+app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")
+
+# --------------------
+# Frontend (optional)
+# --------------------
 
 
 # --------------------
-# Scheduler
+# Startup
 # --------------------
-scheduler = BackgroundScheduler()
-
-
 @app.on_event("startup")
 def startup_event():
     init_db()
+    print("✅ API started")
 
     if not scheduler.running:
         scheduler.add_job(
@@ -85,7 +95,7 @@ def shutdown_event():
 # --------------------
 # Health Check
 # --------------------
-@app.get("/")
+@app.get("/health")
 def health_check():
     return {
         "status": "running",

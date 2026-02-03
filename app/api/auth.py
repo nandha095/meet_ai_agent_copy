@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from jose import jwt, JWTError, ExpiredSignatureError
 from passlib.context import CryptContext
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-
+import json
 from app.db.session import get_db
 from app.models.user import User
 from app.models.google_token import GoogleToken
@@ -20,7 +20,9 @@ import os
 from google.oauth2 import id_token
 from google.auth.transport import requests
 from app.api.schemas import ForgotPasswordRequest, ResetPasswordRequest
-
+from fastapi import HTTPException, Depends
+from sqlalchemy.orm import Session
+from app.api.schemas import RegisterRequest
 SECRET_KEY = settings.JWT_SECRET_KEY
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 
@@ -114,21 +116,24 @@ def create_password_reset_token(user_id: int):
 # =========================================================
 # USER REGISTER
 # =========================================================
-@router.post("/register")
-def register(email: str, password: str, db: Session = Depends(get_db)):
 
-    if len(password.encode("utf-8")) > 72:
+@router.post("/register")
+def register(
+    data: RegisterRequest,
+    db: Session = Depends(get_db)
+):
+    if len(data.password.encode("utf-8")) > 72:
         raise HTTPException(
             status_code=400,
             detail="Password too long (max 72 bytes)"
         )
 
-    if db.query(User).filter(User.email == email).first():
+    if db.query(User).filter(User.email == data.email).first():
         raise HTTPException(status_code=400, detail="Email already registered")
 
     user = User(
-        email=email,
-        password_hash=hash_password(password)
+        email=data.email,
+        password_hash=hash_password(data.password)
     )
 
     db.add(user)
@@ -158,7 +163,17 @@ def login(
             detail="Invalid email or password"
         )
 
+    # ✅ Create JWT token
     token = create_access_token(user.id)
+
+    # ✅ SAVE LOGIN LOCALLY (VERY IMPORTANT)
+    app_dir = os.path.expanduser("~/AppData/Roaming/MeetingAgent")
+    session_file = os.path.join(app_dir, "session.json")
+
+    os.makedirs(app_dir, exist_ok=True)
+
+    with open(session_file, "w") as f:
+        json.dump({"user_id": user.id}, f)
 
     return {
         "access_token": token,
@@ -167,18 +182,19 @@ def login(
 
 
 # Google OAuth login endpoint to connect Google account
+# Google OAuth login endpoint to connect Google account
 @router.get("/google/login")
 def google_login():
     flow = get_google_auth_flow()
 
-    auth_url, _ = flow.authorization_url(
-    access_type="offline",
-    prompt="consent",
-    include_granted_scopes="true"
-)
-
+    auth_url, state = flow.authorization_url(
+        access_type="offline",          # required for refresh token
+        prompt="consent",               # force re-consent
+        include_granted_scopes=False    # MUST be boolean
+    )
 
     return RedirectResponse(auth_url)
+
 
 
 
@@ -240,9 +256,9 @@ def google_callback(
     db.add(token)
     db.commit()
 
-    return RedirectResponse(
-    url="http://127.0.0.1:5500/frontend/dashboard.html"
-)
+    return RedirectResponse(url="/dashboard.html")
+
+
 
 # google connection status endpoint
 @router.get("/google/status")

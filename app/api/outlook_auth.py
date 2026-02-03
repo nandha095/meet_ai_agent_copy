@@ -165,6 +165,5 @@ def outlook_callback(
 
     db.commit()
 
-    return RedirectResponse(
-        url="http://127.0.0.1:5500/frontend/dashboard.html"
-)
+    return RedirectResponse(url="/dashboard.html")
+
