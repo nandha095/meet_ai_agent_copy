@@ -25,6 +25,7 @@ from sqlalchemy.orm import Session
 from app.api.schemas import RegisterRequest
 SECRET_KEY = settings.JWT_SECRET_KEY
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
+BASE_URL = os.getenv("BASE_URL")
 
 if not GOOGLE_CLIENT_ID:
     raise RuntimeError("GOOGLE_CLIENT_ID not set in environment")
@@ -334,7 +335,7 @@ def forgot_password(
 
     token = create_password_reset_token(user.id)
 
-    reset_link = f"http://127.0.0.1:5500/frontend/reset-password.html?token={token}"
+    reset_link = f"{BASE_URL}/reset-password.html?token={token}"
 
 
     send_system_email(
