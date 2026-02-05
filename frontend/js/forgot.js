@@ -1,3 +1,7 @@
+// ✅ Automatically detect server URL
+const BASE_URL = window.location.origin;
+
+
 /****************************
  * SEND RESET LINK
  ****************************/
@@ -14,7 +18,7 @@ async function sendResetLink() {
 
   try {
     const response = await fetch(
-      "http://127.0.0.1:8000/auth/forgot-password",
+      `${BASE_URL}/auth/forgot-password`,
       {
         method: "POST",
         headers: {
@@ -32,10 +36,13 @@ async function sendResetLink() {
     } else {
       messageEl.innerText = data.detail || "❌ Failed to send reset link";
     }
+
   } catch (err) {
-    messageEl.innerText = "❌ Network error";
+    console.error("Forgot password error:", err);
+    messageEl.innerText = "❌ Server unreachable. Try again.";
   }
 }
+
 
 /****************************
  * RESET PASSWORD
@@ -57,7 +64,7 @@ async function resetPassword() {
 
   try {
     const response = await fetch(
-      "http://127.0.0.1:8000/auth/reset-password",
+      `${BASE_URL}/auth/reset-password`,
       {
         method: "POST",
         headers: {
@@ -74,14 +81,18 @@ async function resetPassword() {
 
     if (response.ok) {
       messageEl.innerText =
-        "✅ Password reset successful. You can now login.";
+        "✅ Password reset successful. Redirecting to login...";
+
       setTimeout(() => {
         window.location.href = "index.html";
       }, 2000);
+
     } else {
       messageEl.innerText = data.detail || "❌ Reset failed";
     }
+
   } catch (err) {
-    messageEl.innerText = "❌ Network error";
+    console.error("Reset password error:", err);
+    messageEl.innerText = "❌ Server unreachable. Try again.";
   }
 }

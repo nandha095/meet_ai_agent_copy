@@ -1,4 +1,8 @@
+// ✅ Automatically detect server URL
+const BASE_URL = window.location.origin;
+
 let proposalsVisible = false;
+
 
 /****************************
  * HANDLE SESSION EXPIRY
@@ -8,6 +12,7 @@ function handleSessionExpired() {
   localStorage.removeItem("token");
   window.location.href = "index.html";
 }
+
 
 /****************************
  * GOOGLE CONNECT
@@ -19,8 +24,9 @@ function connectGoogle() {
   document.getElementById("ai-status").innerText =
     "🤖 Connecting to Google...";
 
-  window.location.href = "http://127.0.0.1:8000/auth/google/login";
+  window.location.href = `${BASE_URL}/auth/google/login`;
 }
+
 
 /****************************
  * OUTLOOK CONNECT
@@ -33,8 +39,9 @@ function connectOutlook() {
     "🤖 Connecting to Outlook...";
 
   window.location.href =
-    `http://127.0.0.1:8000/auth/outlook/login?token=${token}`;
+    `${BASE_URL}/auth/outlook/login?token=${token}`;
 }
+
 
 /****************************
  * CHECK EMAIL CONNECTION STATUS
@@ -48,7 +55,7 @@ async function checkEmailConnectionStatus() {
 
   try {
     const g = await fetch(
-      "http://127.0.0.1:8000/auth/google/status",
+      `${BASE_URL}/auth/google/status`,
       { headers: { Authorization: `Bearer ${token}` } }
     );
     google = (await g.json()).connected;
@@ -56,7 +63,7 @@ async function checkEmailConnectionStatus() {
 
   try {
     const o = await fetch(
-      "http://127.0.0.1:8000/auth/outlook/status",
+      `${BASE_URL}/auth/outlook/status`,
       { headers: { Authorization: `Bearer ${token}` } }
     );
     outlook = (await o.json()).connected;
@@ -64,6 +71,7 @@ async function checkEmailConnectionStatus() {
 
   updateAIStatus(google, outlook);
 }
+
 
 /****************************
  * UPDATE AI STATUS + BUTTONS
@@ -99,6 +107,7 @@ function updateAIStatus(google, outlook) {
   outlookDisconnect.style.display = outlook ? "inline-flex" : "none";
 }
 
+
 /****************************
  * DISCONNECT
  ****************************/
@@ -108,7 +117,7 @@ async function disconnectGoogle() {
 
   if (!confirm("Disconnect Google account?")) return;
 
-  await fetch("http://127.0.0.1:8000/auth/google/disconnect", {
+  await fetch(`${BASE_URL}/auth/google/disconnect`, {
     method: "POST",
     headers: { Authorization: `Bearer ${token}` }
   });
@@ -122,13 +131,14 @@ async function disconnectOutlook() {
 
   if (!confirm("Disconnect Outlook account?")) return;
 
-  await fetch("http://127.0.0.1:8000/auth/outlook/disconnect", {
+  await fetch(`${BASE_URL}/auth/outlook/disconnect`, {
     method: "POST",
     headers: { Authorization: `Bearer ${token}` }
   });
 
   checkEmailConnectionStatus();
 }
+
 
 /****************************
  * SEND PROPOSAL
@@ -148,7 +158,7 @@ async function sendProposal() {
   }
 
   const res = await fetch(
-    "http://127.0.0.1:8000/emails/emails/send-proposal",
+    `${BASE_URL}/emails/emails/send-proposal`,
     {
       method: "POST",
       headers: { Authorization: `Bearer ${token}` },
@@ -164,6 +174,7 @@ async function sendProposal() {
   if (res.ok) loadProposals();
 }
 
+
 /****************************
  * LOAD + RENDER PROPOSALS
  ****************************/
@@ -172,12 +183,13 @@ async function loadProposals() {
   if (!token) return;
 
   const res = await fetch(
-    "http://127.0.0.1:8000/emails/emails/",
+    `${BASE_URL}/emails/emails/`,
     { headers: { Authorization: `Bearer ${token}` } }
   );
 
   renderProposals(await res.json());
 }
+
 
 function renderProposals(proposals) {
   const container = document.getElementById("proposal-list");
@@ -208,10 +220,12 @@ function renderProposals(proposals) {
   });
 }
 
+
 function toggleProposalDetails(id) {
   const el = document.getElementById(`details-${id}`);
   el.style.display = el.style.display === "none" ? "block" : "none";
 }
+
 
 /****************************
  * TOGGLE PROPOSALS LIST
@@ -232,8 +246,9 @@ function toggleProposals() {
   proposalsVisible = !proposalsVisible;
 }
 
+
 /****************************
- * PAGE LOAD (SAFE)
+ * PAGE LOAD
  ****************************/
 window.addEventListener("load", () => {
   checkEmailConnectionStatus();
