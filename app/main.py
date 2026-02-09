@@ -16,6 +16,7 @@ import os
 from fastapi.staticfiles import StaticFiles
 from apscheduler.schedulers.background import BackgroundScheduler
 from app.services.reply_worker import run_reply_worker
+from app.services.token_cleanup import cleanup_expired_tokens
 
 
 scheduler = BackgroundScheduler()
@@ -31,7 +32,7 @@ app = FastAPI(
 # --------------------
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["http://127.0.0.1:8000", "http://localhost:8000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -81,8 +82,16 @@ def startup_event():
             id="reply_worker",
             replace_existing=True
         )
+        scheduler.add_job(
+            cleanup_expired_tokens,
+            trigger="interval",
+            hours=1,
+            id="token_cleanup",
+            replace_existing=True
+        )
         scheduler.start()
         print("⏱️ Background reply worker started (every 1 minute)")
+        print("⏱️ Token cleanup started (every 1 hour)")
 
 
 @app.on_event("shutdown")

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Activity | AI Meeting Agent</title>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#0ea5a4">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="container dashboard">
+    <div class="header">
+      <div class="brand-badge">AI</div>
+      <div>
+        <h1>Activity</h1>
+        <p class="subtitle">Recent proposals and meetings in one timeline.</p>
+      </div>
+      <div class="header-actions">
+        <a class="button secondary" href="dashboard.html">Dashboard</a>
+        <a class="button secondary" href="proposal-history.html">Proposal History</a>
+        <a class="button secondary" href="settings.html">Settings</a>
+        <button class="secondary logout-btn" id="logout-btn" type="button">Logout</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>Recent activity</h3>
+      <p class="muted">Latest proposal and meeting actions.</p>
+      <div id="activity-list" class="activity-list"></div>
+      <div class="pagination">
+        <button class="secondary" id="prev-page">Previous</button>
+        <span class="muted" id="page-info">Page 1</span>
+        <label class="muted page-size">
+          Page size
+          <select id="page-size">
+            <option value="10" selected>10</option>
+            <option value="20">20</option>
+            <option value="30">30</option>
+            <option value="50">50</option>
+          </select>
+        </label>
+        <label class="muted page-jump">
+          Go to
+          <input id="page-jump" type="number" min="1" value="1">
+        </label>
+        <button class="secondary" id="next-page">Next</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="update-toast" class="update-toast">
+    <span>Update available</span>
+    <button id="update-btn">Refresh</button>
+  </div>
+  <script src="js/activity.js?v=2"></script>
+  <script src="js/pwa.js?v=2"></script>
+</body>
+</html>

@@ -9,8 +9,11 @@ from app.models.proposal import Proposal
 router = APIRouter()
 
 @router.get("/fetch")
-def fetch_replies(db: Session = Depends(get_db)):
-    process_replies(db)
+def fetch_replies(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    process_replies(db, user_id=current_user.id)
     return {"status": "processed"}
 
 

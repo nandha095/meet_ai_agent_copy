@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Form
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
+import uuid
 from jose import jwt, JWTError, ExpiredSignatureError
 from passlib.context import CryptContext
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
@@ -14,21 +15,22 @@ from app.services.email_service import send_system_email
 from app.core.config import settings
 from jose import jwt
 from app.models.outlook_token import OutlookToken
+from app.models.token_blacklist import TokenBlacklist
+from app.models.audit_log import AuditLog
 from fastapi.responses import RedirectResponse
 from googleapiclient.discovery import build
 import os
 from google.oauth2 import id_token
 from google.auth.transport import requests
-from app.api.schemas import ForgotPasswordRequest, ResetPasswordRequest
+from app.api.schemas import ForgotPasswordRequest, ResetPasswordRequest, ChangePasswordRequest
 from fastapi import HTTPException, Depends
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from app.api.schemas import RegisterRequest
+import re
 SECRET_KEY = settings.JWT_SECRET_KEY
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 BASE_URL = os.getenv("BASE_URL")
-
-if not GOOGLE_CLIENT_ID:
-    raise RuntimeError("GOOGLE_CLIENT_ID not set in environment")
 
 
 
@@ -58,13 +60,29 @@ def hash_password(password: str) -> str:
 def verify_password(password: str, hashed: str) -> bool:
     return pwd_context.verify(password, hashed)
 
+def is_strong_password(password: str) -> bool:
+    if len(password) < 8:
+        return False
+    if not re.search(r"[A-Z]", password):
+        return False
+    if not re.search(r"[a-z]", password):
+        return False
+    if not re.search(r"\d", password):
+        return False
+    if not re.search(r"[^\w\s]", password):
+        return False
+    return True
+
 # --------------------
 # JWT HELPERS
 # --------------------
-def create_access_token(user_id: int):
+def create_access_token(user: User, expires_minutes: int = ACCESS_TOKEN_EXPIRE_MINUTES):
+    jti = uuid.uuid4().hex
     payload = {
-        "sub": str(user_id),
-        "exp": datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        "sub": str(user.id),
+        "jti": jti,
+        "ver": user.token_version,
+        "exp": datetime.utcnow() + timedelta(minutes=expires_minutes)
     }
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
@@ -76,7 +94,14 @@ def get_current_user(
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
 
         user_id = payload.get("sub")
+        jti = payload.get("jti")
+        token_ver = payload.get("ver", 0)
         if user_id is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token"
+            )
+        if not jti:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid token"
@@ -97,14 +122,64 @@ def get_current_user(
             detail="Invalid token"
         )
 
+    # Reject if token has been revoked
+    revoked = (
+        db.query(TokenBlacklist)
+        .filter(TokenBlacklist.jti == jti)
+        .first()
+    )
+    if revoked:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token revoked"
+        )
+
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="User not found"
         )
+    if token_ver != user.token_version:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token revoked"
+        )
 
     return user
+
+
+@router.post("/logout")
+def logout(
+    token: str = Depends(oauth2_scheme),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        jti = payload.get("jti")
+        exp = payload.get("exp")
+        if not jti or not exp:
+            raise HTTPException(status_code=400, detail="Invalid token")
+    except JWTError:
+        raise HTTPException(status_code=400, detail="Invalid token")
+
+    expires_at = datetime.utcfromtimestamp(exp)
+
+    # Store revoked token
+    if not db.query(TokenBlacklist).filter(TokenBlacklist.jti == jti).first():
+        db.add(TokenBlacklist(
+            user_id=current_user.id,
+            jti=jti,
+            expires_at=expires_at
+        ))
+        try:
+            db.commit()
+        except IntegrityError:
+            db.rollback()
+    log_event(db, current_user.id, "logout")
+
+    return {"message": "Logged out"}
 
 def create_password_reset_token(user_id: int):
     payload = {
@@ -112,6 +187,11 @@ def create_password_reset_token(user_id: int):
         "exp": datetime.utcnow() + timedelta(minutes=RESET_TOKEN_EXPIRE_MINUTES)
     }
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+
+
+def log_event(db: Session, user_id: int, action: str, detail: str | None = None):
+    db.add(AuditLog(user_id=user_id, action=action, detail=detail))
+    db.commit()
 
 
 # =========================================================
@@ -128,6 +208,11 @@ def register(
             status_code=400,
             detail="Password too long (max 72 bytes)"
         )
+    if not is_strong_password(data.password):
+        raise HTTPException(
+            status_code=400,
+            detail="Password must be at least 8 characters and include uppercase, lowercase, number, and symbol"
+        )
 
     if db.query(User).filter(User.email == data.email).first():
         raise HTTPException(status_code=400, detail="Email already registered")
@@ -140,6 +225,7 @@ def register(
     db.add(user)
     db.commit()
     db.refresh(user)
+    log_event(db, user.id, "register")
 
     return {"message": "User registered successfully"}
 
@@ -149,6 +235,7 @@ def register(
 @router.post("/login")
 def login(
     form_data: OAuth2PasswordRequestForm = Depends(),
+    remember: bool = Form(False),
     db: Session = Depends(get_db)
 ):
     user = db.query(User).filter(
@@ -165,16 +252,9 @@ def login(
         )
 
     # ✅ Create JWT token
-    token = create_access_token(user.id)
-
-    # ✅ SAVE LOGIN LOCALLY (VERY IMPORTANT)
-    app_dir = os.path.expanduser("~/AppData/Roaming/MeetingAgent")
-    session_file = os.path.join(app_dir, "session.json")
-
-    os.makedirs(app_dir, exist_ok=True)
-
-    with open(session_file, "w") as f:
-        json.dump({"user_id": user.id}, f)
+    expires_minutes = 60 if not remember else 60 * 24 * 7
+    token = create_access_token(user, expires_minutes=expires_minutes)
+    log_event(db, user.id, "login", "remember_me" if remember else "standard")
 
     return {
         "access_token": token,
@@ -186,6 +266,8 @@ def login(
 # Google OAuth login endpoint to connect Google account
 @router.get("/google/login")
 def google_login():
+    if not GOOGLE_CLIENT_ID:
+        raise HTTPException(status_code=500, detail="GOOGLE_CLIENT_ID not configured")
     flow = get_google_auth_flow()
 
     auth_url, state = flow.authorization_url(
@@ -218,6 +300,9 @@ def google_callback(
 
     from google.oauth2 import id_token
     from google.auth.transport import requests
+
+    if not GOOGLE_CLIENT_ID:
+        raise HTTPException(status_code=500, detail="GOOGLE_CLIENT_ID not configured")
 
     idinfo = id_token.verify_oauth2_token(
         creds.id_token,
@@ -369,12 +454,97 @@ def reset_password(
 
     if len(request.new_password.encode("utf-8")) > 72:
         raise HTTPException(status_code=400, detail="Password too long")
+    if not is_strong_password(request.new_password):
+        raise HTTPException(
+            status_code=400,
+            detail="Password must be at least 8 characters and include uppercase, lowercase, number, and symbol"
+        )
 
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
     user.password_hash = hash_password(request.new_password)
+    user.token_version += 1
     db.commit()
+    log_event(db, user.id, "password_reset")
 
     return {"message": "Password reset successful"}
+
+
+@router.post("/change-password")
+def change_password(
+    request: ChangePasswordRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    if not verify_password(request.current_password, current_user.password_hash):
+        raise HTTPException(status_code=400, detail="Current password is incorrect")
+
+    if len(request.new_password.encode("utf-8")) > 72:
+        raise HTTPException(status_code=400, detail="Password too long (max 72 bytes)")
+
+    if not is_strong_password(request.new_password):
+        raise HTTPException(
+            status_code=400,
+            detail="Password must be at least 8 characters and include uppercase, lowercase, number, and symbol"
+        )
+
+    current_user.password_hash = hash_password(request.new_password)
+    current_user.token_version += 1
+    db.commit()
+    log_event(db, current_user.id, "change_password")
+
+    return {"message": "Password changed successfully"}
+
+
+@router.post("/logout-all")
+def logout_all(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    current_user.token_version += 1
+    db.commit()
+    log_event(db, current_user.id, "logout_all")
+    return {"message": "Logged out everywhere"}
+
+
+@router.get("/me")
+def me(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    google_connected = db.query(GoogleToken).filter(
+        GoogleToken.user_id == current_user.id
+    ).first() is not None
+    outlook_connected = db.query(OutlookToken).filter(
+        OutlookToken.user_id == current_user.id
+    ).first() is not None
+
+    return {
+        "email": current_user.email,
+        "google_connected": google_connected,
+        "outlook_connected": outlook_connected
+    }
+
+
+@router.get("/audit")
+def audit(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    logs = (
+        db.query(AuditLog)
+        .filter(AuditLog.user_id == current_user.id)
+        .order_by(AuditLog.created_at.desc())
+        .limit(20)
+        .all()
+    )
+    return [
+        {
+            "action": l.action,
+            "detail": l.detail,
+            "created_at": l.created_at
+        }
+        for l in logs
+    ]

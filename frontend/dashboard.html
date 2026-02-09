@@ -3,141 +3,138 @@
 <head>
   <meta charset="UTF-8" />
   <title>AI Meeting Scheduling Agent</title>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#0ea5a4">
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
-
-  <div class="container">
-
-    <!-- AI Header -->
-    <div class="ai-icon">🤖</div>
-    <h2>AI Meeting Scheduling Agent</h2>
-    <p class="subtitle">
-      Let AI handle proposals, replies & meeting scheduling
-    </p>
-
-    <!-- AI Status -->
-    <div id="ai-status" class="ai-status">
-      🔌 Google not connected
-    </div>
-     
-
-   <!-- Google -->
-<button id="google-connect-btn" class="google-btn" onclick="connectGoogle()">
-  <img src="https://developers.google.com/identity/images/g-logo.png" class="google-icon" />
-  <span>Connect Google</span>
-</button>
-
-<button id="google-disconnect-btn"
-        class="disconnect-btn"
-        onclick="disconnectGoogle()"
-        style="display:none;">
-   Disconnect Google
-</button>
-
-
-
-    <!-- Outlook -->
-<button id="outlook-connect-btn" class="outlook-btn" onclick="connectOutlook()">
-  <img src="https://upload.wikimedia.org/wikipedia/commons/4/44/Microsoft_logo.svg" class="outlook-icon" />
-  <span>Connect Outlook</span>
-</button>
-
-<button id="outlook-disconnect-btn"
-        class="disconnect-btn"
-        onclick="disconnectOutlook()"
-        style="display:none;">
-   Disconnect Outlook
-</button>
-
-
-
-
-
-    <!-- Divider -->
-    <div class="divider"></div>
-
-    <!-- AI Workflow -->
-    <div class="ai-flow">
-      <p class="ai-flow-title">🧠 How the AI works</p>
-
-      <div class="ai-step">
-        <span class="step-number">1.</span>
-        <span class="step-text">Send proposal from your email</span>
+  <div class="container dashboard">
+    <div class="header">
+      <div class="brand-badge">AI</div>
+      <div>
+        <h1>AI Meeting Scheduling Agent</h1>
+        <p class="subtitle">Let AI handle proposals, replies, and meeting scheduling.</p>
       </div>
-
-      <div class="ai-step">
-        <span class="step-number">2.</span>
-        <span class="step-text">AI reads and understands client reply</span>
-      </div>
-
-      <div class="ai-step">
-        <span class="step-number">3.</span>
-        <span class="step-text">AI schedules meeting automatically</span>
-      </div>
-
-      <div class="ai-step">
-        <span class="step-number">4.</span>
-        <span class="step-text">AI sends meeting link to both sides</span>
+      <div class="header-actions">
+        <a class="button secondary" href="activity.html">Activity</a>
+        <a class="button secondary" href="proposal-history.html">Proposal History</a>
+        <a class="button secondary" href="settings.html">Settings</a>
+        <button class="secondary logout-btn" id="logout-btn" type="button" onclick="if (window.logout) { window.logout(); } else { localStorage.removeItem('token'); window.location.href='login.html'; }">Logout</button>
       </div>
     </div>
 
-    <!-- Divider -->
-    <div class="divider"></div>
+    <div class="status-card">
+      <div id="ai-status" class="ai-status">Google not connected</div>
+      <p class="muted">Connect a provider to enable inbox monitoring and scheduling.</p>
+    </div>
 
-    <!-- Send Proposal -->
-    <h3>Send Proposal</h3>
+    <div class="stats">
+      <div class="stat-card">
+        <p class="stat-label">Active inbox</p>
+        <p class="stat-value" id="stat-inbox">Ready to connect</p>
+      </div>
+      <div class="stat-card">
+        <p class="stat-label">Proposals sent</p>
+        <p class="stat-value" id="stat-proposals">0</p>
+      </div>
+      <div class="stat-card">
+        <p class="stat-label">Meetings scheduled</p>
+        <p class="stat-value" id="stat-meetings">0</p>
+      </div>
+    </div>
+    <p class="muted stat-updated" id="stat-updated">Last updated: —</p>
 
-    <!--  NEW: Provider Selection -->
-    <select id="provider">
-    <option value="google">Send via Gmail</option>
-    <option value="outlook">Send via Outlook</option>
-    </select>
+    <div class="grid two">
+      <div class="panel">
+        <h3>Connections</h3>
+        <p class="muted">Choose which inbox you want the agent to use.</p>
 
+        <button id="google-connect-btn" class="provider-btn" onclick="connectGoogle()">
+          <img src="https://developers.google.com/identity/images/g-logo.png" class="provider-icon" alt="Google" />
+          <span>Connect Google</span>
+        </button>
 
-    <input id="to_email" placeholder="Client Email" />
-    <input id="subject" placeholder="Subject" />
-    <textarea id="body" placeholder="Proposal message"></textarea>
+        <button id="google-disconnect-btn" class="disconnect-btn" onclick="disconnectGoogle()" style="display:none;">
+          Disconnect Google
+        </button>
 
-    <div class="attachment-wrapper">
-  <label for="attachment" class="attachment-label">
-    📎 Attach files (optional)
-  </label>
+        <button id="outlook-connect-btn" class="provider-btn" onclick="connectOutlook()">
+          <img src="https://upload.wikimedia.org/wikipedia/commons/4/44/Microsoft_logo.svg" class="provider-icon" alt="Microsoft" />
+          <span>Connect Outlook</span>
+        </button>
 
-  <input
-  type="file"
-  id="attachment"
-  name="attachments"
-  multiple
-/>
+        <button id="outlook-disconnect-btn" class="disconnect-btn" onclick="disconnectOutlook()" style="display:none;">
+          Disconnect Outlook
+        </button>
+      </div>
 
-  <div id="file-list" class="file-list"></div>
-</div>
+      <div class="panel">
+        <h3>How the AI works</h3>
+        <div class="ai-flow">
+          <div class="ai-step">
+            <span class="step-number">1</span>
+            <span class="step-text">Send a proposal from your email</span>
+          </div>
+          <div class="ai-step">
+            <span class="step-number">2</span>
+            <span class="step-text">AI reads and understands the reply</span>
+          </div>
+          <div class="ai-step">
+            <span class="step-number">3</span>
+            <span class="step-text">AI finds a suitable time</span>
+          </div>
+          <div class="ai-step">
+            <span class="step-number">4</span>
+            <span class="step-text">Meeting details are sent to both sides</span>
+          </div>
+        </div>
+      </div>
+    </div>
 
+    <div class="panel">
+      <h3>Send proposal</h3>
+      <p class="muted">Draft and send a new proposal from your connected inbox.</p>
 
+      <label class="label" for="provider">Email provider</label>
+      <select id="provider">
+        <option value="google">Send via Gmail</option>
+        <option value="outlook">Send via Outlook</option>
+      </select>
 
-    <button onclick="sendProposal()">🚀 Send Proposal</button>
+      <label class="label" for="to_email">Client email</label>
+      <input id="to_email" placeholder="client@company.com" />
 
-    <!-- AI Action Message -->
-    <p id="ai-action" class="ai-action"></p>
+      <label class="label" for="subject">Subject</label>
+      <input id="subject" placeholder="Proposal subject" value="Project Proposal" readonly />
 
-<!-- Divider -->
-    <div class="divider"></div>
+      <label class="label" for="body">Message</label>
+      <textarea id="body" placeholder="Write your proposal message"></textarea>
 
-    <!-- Proposal Status Section -->
-    <h3>Your Proposal History</h3>
+      <div class="attachment-wrapper">
+        <label for="attachment" class="attachment-label">Attach files (optional)</label>
+        <input type="file" id="attachment" name="attachments" multiple />
+        <div id="file-list" class="file-list"></div>
+      </div>
 
-    <button id="toggle-proposals-btn" onclick="toggleProposals()">
-        👁 View Proposals
-    </button>
+      <button class="primary" id="send-proposal-btn" onclick="sendProposal()">Send proposal</button>
+      <p id="ai-action" class="ai-action"></p>
+    </div>
 
-    <div id="proposal-list" style="display: none;"></div>
-
-
+    <div class="panel">
+      <h3>Upcoming meeting</h3>
+      <p class="muted">Your next scheduled meeting.</p>
+      <div id="next-meeting" class="meeting-card">
+        <p class="muted">No upcoming meetings.</p>
+      </div>
+    </div>
 
   </div>
-  
 
-  <script src="js/dashboard.js"></script>
+  <div id="update-toast" class="update-toast">
+    <span>Update available</span>
+    <button id="update-btn">Refresh</button>
+  </div>
+  <script src="js/dashboard.js?v=5"></script>
+  <script src="js/pwa.js?v=2"></script>
 </body>
 </html>

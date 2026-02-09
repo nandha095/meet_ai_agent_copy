@@ -2,62 +2,72 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>AI Meeting Agent | Login</title>
-
+  <title>AI Meeting Agent</title>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#0ea5a4">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-
-  <div class="container">
-
-    <!-- AI Icon -->
-    <div class="ai-icon">🤖</div>
-
-    <!-- Title -->
-    <h2>AI Meeting Agent</h2>
-
-    <!-- Subtitle -->
-    <p class="subtitle">
-      Automate proposals, emails & meetings using AI
-    </p>
-
-    <!-- Email -->
-    <input
-      id="email"
-      type="email"
-      placeholder="Email"
-      autocomplete="username"
-    >
-
-    <!-- Password -->
-    <input
-      id="password"
-      type="password"
-      placeholder="Password"
-      autocomplete="current-password"
-    >
-
-    <!-- Forgot password -->
-    <div class="forgot-row">
-      <a href="forgot-password.html">Forgot password?</a>
+  <div class="container landing">
+    <div class="landing-actions">
+      <a class="button primary" href="login.html">Sign in</a>
+      <a class="button primary" href="register.html">Sign up</a>
     </div>
 
-    <!-- Login Button -->
-    <button onclick="login()">Login</button>
-
-    <!-- AI Info -->
-    <p class="ai-info">
-      Powered by AI-driven email understanding & smart scheduling
-    </p>
-
-    <!-- Register -->
-    <div class="section">
-      <p>Don’t have an account?</p>
-      <a href="register.html">Register here</a>
+    <div class="hero">
+      <div class="brand-badge">AI</div>
+      <div>
+        <h1>AI Meeting Agent</h1>
+        <p class="subtitle">Automate proposals, replies, and meeting scheduling with an AI assistant that works from your inbox.</p>
+        <p class="welcome">Welcome! You're one step away from automating your client meetings.</p>
+      </div>
     </div>
 
+    <div class="feature-grid">
+      <div class="feature-card">
+        <h3>Smart proposals</h3>
+        <p class="muted">Send structured proposals from Gmail or Outlook with consistent subject lines.</p>
+      </div>
+      <div class="feature-card">
+        <h3>Automatic follow-up</h3>
+        <p class="muted">The agent reads replies and triggers scheduling workflows.</p>
+      </div>
+      <div class="feature-card">
+        <h3>Meeting delivery</h3>
+        <p class="muted">Calendar links and details are sent to both sides without manual work.</p>
+      </div>
+    </div>
+
+    <div class="panel landing-panel">
+      <h3>How it works</h3>
+      <div class="ai-flow">
+        <div class="ai-step">
+          <span class="step-number">1</span>
+          <span class="step-text">Connect your email provider</span>
+        </div>
+        <div class="ai-step">
+          <span class="step-number">2</span>
+          <span class="step-text">Send a proposal from the dashboard</span>
+        </div>
+        <div class="ai-step">
+          <span class="step-number">3</span>
+          <span class="step-text">AI handles replies and confirms a time</span>
+        </div>
+        <div class="ai-step">
+          <span class="step-number">4</span>
+          <span class="step-text">Meeting details are delivered automatically</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <p class="muted">Built for teams that want consistent client communication.</p>
+    </div>
   </div>
-
-  <script src="js/auth.js"></script>
+  <div id="update-toast" class="update-toast">
+    <span>Update available</span>
+    <button id="update-btn">Refresh</button>
+  </div>
+  <script src="js/pwa.js?v=2"></script>
 </body>
 </html>

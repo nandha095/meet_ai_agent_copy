@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Register | AI Meeting Agent</title>
+  <title>AI Meeting Agent | Login</title>
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#0ea5a4">
   <link rel="stylesheet" href="css/style.css">
@@ -12,8 +12,8 @@
     <div class="header">
       <div class="brand-badge">AI</div>
       <div>
-        <h1>Create your account</h1>
-        <p class="subtitle">Start automating proposals and meeting scheduling.</p>
+        <h1>AI Meeting Agent</h1>
+        <p class="subtitle">Sign in to manage proposals and scheduling.</p>
       </div>
     </div>
 
@@ -23,20 +23,27 @@
       <p class="field-error" id="email-error"></p>
 
       <label class="label" for="password">Password</label>
-      <input id="password" type="password" placeholder="Create a password" autocomplete="new-password">
+      <input id="password" type="password" placeholder="Your password" autocomplete="current-password">
       <p class="field-error" id="password-error"></p>
+      <p class="field-hint" id="password-hint"></p>
 
-      <label class="label" for="confirm_password">Confirm password</label>
-      <input id="confirm_password" type="password" placeholder="Confirm password" autocomplete="new-password">
-      <p class="field-error" id="confirm-password-error"></p>
+      <div class="row between">
+        <label class="checkbox">
+          <input type="checkbox" id="remember">
+          <span>Remember me</span>
+        </label>
+        <a class="link subtle" href="forgot-password.html">Forgot password?</a>
+      </div>
 
-      <button class="primary" id="register-btn" onclick="register()">Create account</button>
+      <button class="primary" id="login-btn" onclick="login()">Sign in</button>
       <p id="auth-message" class="message"></p>
+
+      <p class="helper">Powered by AI-driven email understanding and smart scheduling.</p>
     </div>
 
     <div class="section">
-      <p class="muted">Already have an account?</p>
-      <a class="link" href="login.html">Sign in</a>
+      <p class="muted">Don't have an account?</p>
+      <a class="link" href="register.html">Create one</a>
     </div>
   </div>
 
@@ -44,7 +51,7 @@
     <span>Update available</span>
     <button id="update-btn">Refresh</button>
   </div>
-  <script src="js/auth.js?v=6"></script>
+  <script src="js/auth.js?v=5"></script>
   <script src="js/pwa.js?v=2"></script>
 </body>
 </html>

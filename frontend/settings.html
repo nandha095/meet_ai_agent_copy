@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Settings | AI Meeting Agent</title>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#0ea5a4">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="container auth-card">
+    <div class="header">
+      <div class="brand-badge">AI</div>
+      <div>
+        <h1>Settings</h1>
+        <p class="subtitle">Manage your password and sessions.</p>
+      </div>
+    </div>
+
+    <div class="form">
+      <div class="info-card">
+        <h3>Account</h3>
+        <p class="muted">Email</p>
+        <p class="info-value" id="profile-email">—</p>
+        <div class="info-row">
+          <span class="badge provider" id="google-status">Google</span>
+          <span class="badge provider" id="outlook-status">Outlook</span>
+        </div>
+      </div>
+
+      <label class="label" for="current_password">Current password</label>
+      <input id="current_password" type="password" placeholder="Current password">
+      <p class="field-error" id="current-password-error"></p>
+
+      <label class="label" for="new_password">New password</label>
+      <input id="new_password" type="password" placeholder="New password">
+      <p class="field-error" id="new-password-error"></p>
+
+      <button class="primary" id="change-password-btn" onclick="changePassword()">Change password</button>
+      <p id="settings-message" class="message"></p>
+    </div>
+
+    <div class="section">
+      <button class="secondary" id="logout-all-btn" onclick="logoutEverywhere()">Logout everywhere</button>
+      <p class="helper">This will log you out on all devices.</p>
+    </div>
+
+    <div class="section">
+      <h3>Recent security activity</h3>
+      <div id="audit-list" class="audit-list"></div>
+    </div>
+
+    <div class="section">
+      <a class="link" href="dashboard.html">Back to dashboard</a>
+    </div>
+  </div>
+
+  <div id="update-toast" class="update-toast">
+    <span>Update available</span>
+    <button id="update-btn">Refresh</button>
+  </div>
+  <script src="js/settings.js?v=1"></script>
+  <script src="js/pwa.js?v=2"></script>
+</body>
+</html>

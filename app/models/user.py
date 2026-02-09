@@ -31,3 +31,10 @@ class User(Base):
         String(255),
         nullable=True
     )
+
+    # Increment to invalidate all existing tokens (logout everywhere)
+    token_version = Column(
+        Integer,
+        nullable=False,
+        default=0
+    )

@@ -2,6 +2,7 @@
 const BASE_URL = window.location.origin;
 
 let proposalsVisible = false;
+const REQUIRED_SUBJECT = "Project Proposal";
 
 
 /****************************
@@ -10,8 +11,25 @@ let proposalsVisible = false;
 function handleSessionExpired() {
   alert("Session expired. Please login again.");
   localStorage.removeItem("token");
-  window.location.href = "index.html";
+  window.location.href = "login.html";
 }
+
+function logout() {
+  const token = localStorage.getItem("token");
+  if (!token) {
+    window.location.href = "login.html";
+    return;
+  }
+
+  fetch(`${BASE_URL}/auth/logout`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` }
+  }).finally(() => {
+    localStorage.removeItem("token");
+    window.location.href = "login.html";
+  });
+}
+window.logout = logout;
 
 
 /****************************
@@ -58,6 +76,7 @@ async function checkEmailConnectionStatus() {
       `${BASE_URL}/auth/google/status`,
       { headers: { Authorization: `Bearer ${token}` } }
     );
+    if (g.status === 401) return handleSessionExpired();
     google = (await g.json()).connected;
   } catch {}
 
@@ -66,6 +85,7 @@ async function checkEmailConnectionStatus() {
       `${BASE_URL}/auth/outlook/status`,
       { headers: { Authorization: `Bearer ${token}` } }
     );
+    if (o.status === 401) return handleSessionExpired();
     outlook = (await o.json()).connected;
   } catch {}
 
@@ -78,6 +98,7 @@ async function checkEmailConnectionStatus() {
  ****************************/
 function updateAIStatus(google, outlook) {
   const statusEl = document.getElementById("ai-status");
+  const inboxEl = document.getElementById("stat-inbox");
 
   const googleConnect = document.getElementById("google-connect-btn");
   const googleDisconnect = document.getElementById("google-disconnect-btn");
@@ -92,12 +113,16 @@ function updateAIStatus(google, outlook) {
 
   if (google && outlook) {
     statusEl.innerText = "✅ Google & Outlook connected — AI is active";
+    if (inboxEl) inboxEl.innerText = "Google + Outlook";
   } else if (google) {
     statusEl.innerText = "✅ Google connected — AI is active";
+    if (inboxEl) inboxEl.innerText = "Google";
   } else if (outlook) {
     statusEl.innerText = "✅ Outlook connected — AI is active";
+    if (inboxEl) inboxEl.innerText = "Outlook";
   } else {
     statusEl.innerText = "🔌 No email connected";
+    if (inboxEl) inboxEl.innerText = "Not connected";
   }
 
   googleConnect.style.display = google ? "none" : "inline-flex";
@@ -117,11 +142,11 @@ async function disconnectGoogle() {
 
   if (!confirm("Disconnect Google account?")) return;
 
-  await fetch(`${BASE_URL}/auth/google/disconnect`, {
+  const res = await fetch(`${BASE_URL}/auth/google/disconnect`, {
     method: "POST",
     headers: { Authorization: `Bearer ${token}` }
   });
-
+  if (res.status === 401) return handleSessionExpired();
   checkEmailConnectionStatus();
 }
 
@@ -131,11 +156,11 @@ async function disconnectOutlook() {
 
   if (!confirm("Disconnect Outlook account?")) return;
 
-  await fetch(`${BASE_URL}/auth/outlook/disconnect`, {
+  const res = await fetch(`${BASE_URL}/auth/outlook/disconnect`, {
     method: "POST",
     headers: { Authorization: `Bearer ${token}` }
   });
-
+  if (res.status === 401) return handleSessionExpired();
   checkEmailConnectionStatus();
 }
 
@@ -147,9 +172,22 @@ async function sendProposal() {
   const token = localStorage.getItem("token");
   if (!token) return handleSessionExpired();
 
+  const actionEl = document.getElementById("ai-action");
+  const sendBtn = document.getElementById("send-proposal-btn");
+
+  if (!to_email.value || !body.value) {
+    if (actionEl) {
+      actionEl.className = "ai-action error";
+      actionEl.innerText = "Please enter client email and message.";
+    }
+    return;
+  }
+
+  subject.value = REQUIRED_SUBJECT;
+
   const formData = new FormData();
   formData.append("email", to_email.value);
-  formData.append("subject", subject.value);
+  formData.append("subject", REQUIRED_SUBJECT);
   formData.append("body", body.value);
   formData.append("provider", provider.value);
 
@@ -157,21 +195,42 @@ async function sendProposal() {
     formData.append("attachments", f);
   }
 
-  const res = await fetch(
-    `${BASE_URL}/emails/emails/send-proposal`,
-    {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}` },
-      body: formData
+  try {
+    if (sendBtn) {
+      sendBtn.disabled = true;
+      sendBtn.textContent = "Sending...";
     }
-  );
 
-  if (res.status === 401) return handleSessionExpired();
+    if (actionEl) {
+      actionEl.className = "ai-action";
+      actionEl.innerText = "Sending proposal...";
+    }
 
-  document.getElementById("ai-action").innerText =
-    res.ok ? "✅ Proposal sent successfully." : "❌ Failed to send proposal";
+    const res = await fetch(
+      `${BASE_URL}/emails/emails/send-proposal`,
+      {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData
+      }
+    );
 
-  if (res.ok) loadProposals();
+    if (res.status === 401) return handleSessionExpired();
+
+    if (actionEl) {
+      actionEl.className = res.ok ? "ai-action success" : "ai-action error";
+      actionEl.innerText = res.ok
+        ? "✅ Proposal sent successfully."
+        : "❌ Failed to send proposal";
+    }
+
+    if (res.ok) loadProposals();
+  } finally {
+    if (sendBtn) {
+      sendBtn.disabled = false;
+      sendBtn.textContent = "Send proposal";
+    }
+  }
 }
 
 
@@ -196,28 +255,87 @@ function renderProposals(proposals) {
   container.innerHTML = "";
 
   if (!proposals.length) {
-    container.innerHTML = "<p>No proposals sent yet.</p>";
+    container.innerHTML = "<p class=\"muted\">No proposals sent yet.</p>";
     return;
   }
 
   proposals.forEach(p => {
     const cls = p.status.toLowerCase().replaceAll(" ", "_");
+    const createdAt = p.created_at ? new Date(p.created_at).toLocaleString() : "";
+    const provider = p.provider ? p.provider.toUpperCase() : "";
     container.innerHTML += `
       <div class="proposal-card">
-        <b>${p.client_email}</b><br/>
-        ${p.subject}<br/>
-        <span class="status ${cls}">${p.status}</span>
-
-        <button class="view-btn" onclick="toggleProposalDetails(${p.id})">
-          View Details
-        </button>
-
+        <div class="proposal-header">
+          <div>
+            <p class="proposal-email">${p.client_email}</p>
+            <p class="proposal-subject">${p.subject}</p>
+          </div>
+          <div class="proposal-meta">
+            <span class="badge provider">${provider}</span>
+            <span class="status ${cls}">${p.status}</span>
+          </div>
+        </div>
+        <div class="proposal-footer">
+          <p class="proposal-date">${createdAt}</p>
+          <button class="view-btn" onclick="toggleProposalDetails(${p.id})">View Details</button>
+        </div>
         <div id="details-${p.id}" class="proposal-details" style="display:none">
           <p>${p.body || "—"}</p>
         </div>
       </div>
     `;
   });
+}
+
+async function loadStats() {
+  const token = localStorage.getItem("token");
+  if (!token) return;
+
+  try {
+    const res = await fetch(
+      `${BASE_URL}/emails/emails/stats`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    if (res.status === 401) return handleSessionExpired();
+    const data = await res.json();
+    const proposalsEl = document.getElementById("stat-proposals");
+    const meetingsEl = document.getElementById("stat-meetings");
+    const updatedEl = document.getElementById("stat-updated");
+    if (proposalsEl) proposalsEl.innerText = data.proposals_sent ?? 0;
+    if (meetingsEl) meetingsEl.innerText = data.meetings_scheduled ?? 0;
+    if (updatedEl) {
+      const now = new Date();
+      updatedEl.innerText = `Last updated: ${now.toLocaleTimeString()}`;
+    }
+  } catch {}
+}
+
+async function loadNextMeeting() {
+  const token = localStorage.getItem("token");
+  if (!token) return;
+
+  try {
+    const res = await fetch(
+      `${BASE_URL}/meetings/next`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    if (res.status === 401) return handleSessionExpired();
+    const data = await res.json();
+    const container = document.getElementById("next-meeting");
+    if (!container) return;
+    if (!data.meeting) {
+      container.innerHTML = "<p class=\"muted\">No upcoming meetings.</p>";
+      return;
+    }
+    const start = data.meeting.start_time ? new Date(data.meeting.start_time).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }) : "";
+    const end = data.meeting.end_time ? new Date(data.meeting.end_time).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }) : "";
+    const link = data.meeting.meet_link || "#";
+    container.innerHTML = `
+      <p><strong>Start:</strong> ${start}</p>
+      <p><strong>End:</strong> ${end}</p>
+      <a class="link" href="${link}" target="_blank">Open meeting link</a>
+    `;
+  } catch {}
 }
 
 
@@ -251,5 +369,18 @@ function toggleProposals() {
  * PAGE LOAD
  ****************************/
 window.addEventListener("load", () => {
+  const subjectInput = document.getElementById("subject");
+  if (subjectInput) {
+    subjectInput.value = REQUIRED_SUBJECT;
+    subjectInput.readOnly = true;
+  }
+  const logoutBtn = document.getElementById("logout-btn");
+  if (logoutBtn) {
+    logoutBtn.addEventListener("click", logout);
+  }
   checkEmailConnectionStatus();
+  loadStats();
+  loadNextMeeting();
+  setInterval(loadStats, 60000);
+  setInterval(loadNextMeeting, 60000);
 });
