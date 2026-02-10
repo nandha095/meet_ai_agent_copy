@@ -1,8 +1,9 @@
+# from twilio.rest import Client
 from twilio.rest import Client
 import os
 
 def send_meeting_sms(phone: str, meet_link: str, start_time):
-    print(Client)
+    # print(Client)
 
     """
     Sends SMS with meeting link using Twilio.

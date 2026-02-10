@@ -27,11 +27,15 @@ def convert_client_time_to_ist(
 
     days_ahead = (target_weekday - today_weekday) % 7
 
-    if days_ahead == 0:
-        days_ahead = 7
-
     if modifier == "next":
-        days_ahead += 7
+        # "next <weekday>" = next occurrence; if today, move to next week
+        days_ahead = 7 if days_ahead == 0 else days_ahead
+    elif modifier == "this":
+        if days_ahead == 0:
+            days_ahead = 0
+    else:
+        if days_ahead == 0:
+            days_ahead = 7
 
     meeting_date = (now_client + timedelta(days=days_ahead)).date()
 
@@ -70,6 +74,9 @@ def convert_calendar_relative_to_ist(
 
     elif calendar_relative == "tomorrow":
         base_date = (now_client + timedelta(days=1)).date()
+
+    elif calendar_relative == "day_after_tomorrow":
+        base_date = (now_client + timedelta(days=2)).date()
 
     else:
         raise ValueError(f"Unsupported calendar_relative value: {calendar_relative}")

@@ -381,6 +381,59 @@ def send_schedule_choice_email(
     )
 
 
+# -------------------------------------------------
+# ASK CLIENT TO CLARIFY AMBIGUOUS TIME
+# -------------------------------------------------
+def send_ambiguous_time_clarification_email(
+    db: Session,
+    user_id: int,
+    to_email: str,
+    provider: str,
+    ambiguous_text: str,
+):
+    subject = "Meeting Time Clarification"
+
+    safe_text = (ambiguous_text or "").strip()
+    if len(safe_text) > 200:
+        safe_text = safe_text[:200] + "..."
+
+    body_html = f"""
+<html>
+  <body style="font-family: Arial, sans-serif; color: #333;">
+    <p>Hi,</p>
+
+    <p>Thanks for your reply.</p>
+
+    <p>
+      You said: <strong>{safe_text}</strong>
+    </p>
+
+    <p>
+      Could you please confirm the exact time and timezone?
+      Example: <em>Next Monday at 6:30 PM IST</em> or
+      <em>7:00 PM EST</em>.
+    </p>
+
+    <p>Once you confirm, I’ll schedule the meeting.</p>
+
+    <p>
+      Best regards,<br>
+      <strong>Nandhakumar P</strong>
+    </p>
+  </body>
+</html>
+"""
+
+    _send_email(
+        db=db,
+        user_id=user_id,
+        to_email=to_email,
+        subject=subject,
+        body_html=body_html,
+        provider=provider,
+    )
+
+
 
 # -------------------------------------------------
 # SEND MEETING LINK
@@ -557,4 +610,3 @@ def send_reschedule_options_email(
         body_html=body_html,
         provider=provider,
     )
-

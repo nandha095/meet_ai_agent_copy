@@ -206,6 +206,7 @@ from app.services.timezone_utils import (
 )
 from app.services.meeting_email_service import (
     send_schedule_choice_email,
+    send_ambiguous_time_clarification_email,
     send_meeting_link_email,
     send_not_interested_email,
     send_reschedule_options_email,
@@ -233,6 +234,20 @@ AMBIGUOUS_PHRASES = (
     "your convenience",
     "evening works",
     "morning works",
+    "morning",
+    "afternoon",
+    "evening",
+    "night",
+    "today",
+    "tomorrow",
+    "next",
+    "monday",
+    "tuesday",
+    "wednesday",
+    "thursday",
+    "friday",
+    "saturday",
+    "sunday",
 )
 
 TIME_KEYWORDS = ("am", "pm", "ist", "est", "pst", "gmt")
@@ -313,7 +328,7 @@ def process_replies(db, user_id: int):
 
                 if not raw_id or not sender_email:
                     continue
-                if sender_email.startswith(SYSTEM_SENDERS):
+                if any(bad in sender_email for bad in SYSTEM_SENDERS):
                     continue
                 if sender_email == user.email.lower():
                     continue
@@ -339,9 +354,30 @@ def process_replies(db, user_id: int):
                     .first()
                 )
                 if not proposal:
+                    # Skip non-proposal emails (newsletters, alerts, etc.)
                     continue
 
+                print("Reply from:", sender_email)
+                print("Subject:", email.get("subject"))
+                print("Cleaned body:", body)
+
                 rule_intent = detect_meeting_intent(body)
+                print("🧠 Rule intent:", rule_intent)
+                print("🔍 Debug:", {"time_text": time_text, "ambiguous": is_ambiguous_time(body), "proposal_status": proposal.status, "provider": provider_name})
+
+                # LLM fallback for intent when rule confidence is low
+                if rule_intent.get("confidence", 0) < 0.75:
+                    llm_result = llm_extract_intent_and_time(body)
+                    if llm_result and llm_result.get("intent"):
+                        rule_intent = {"intent": llm_result["intent"], "confidence": 0.9}
+
+
+                # Guard: if NO_INTEREST but contains time/ambiguous indicators, treat as interested
+                if rule_intent["intent"] == "NO_INTEREST":
+                    has_time_hint = bool(re.search(r"\b(\d{1,2}(:\d{2})?\s?(am|pm))\b", body, re.IGNORECASE))
+                    has_tz_hint = bool(re.search(r"\b(ist|est|pst|gmt|utc|edt|pdt|mdt|mst|cdt|cst)\b", body, re.IGNORECASE))
+                    if has_time_hint or has_tz_hint or is_ambiguous_time(body):
+                        rule_intent = {"intent": "INTERESTED_NO_TIME", "confidence": 0.6}
 
                 reply = Reply(
                     user_id=user_id,
@@ -356,13 +392,13 @@ def process_replies(db, user_id: int):
                 db.add(reply)
                 db.commit()
 
-                # 📞 Phone
+                #  Phone
                 phone = extract_phone(body)
                 if phone and not proposal.client_phone:
                     proposal.client_phone = normalize_phone(phone)
                     db.commit()
 
-                # ❌ Not interested
+                #  Not interested
                 if rule_intent["intent"] == "NO_INTEREST":
                     proposal.status = "REJECTED"
                     db.commit()
@@ -409,12 +445,22 @@ def process_replies(db, user_id: int):
 
                 if not ist_dt:
                     print("⚠️ Time parsing failed for:", time_text)
+                    print("⚠️ Body was:", body)
+                    send_ambiguous_time_clarification_email(
+                        db,
+                        user_id,
+                        sender_email,
+                        provider_name,
+                        ambiguous_text=body,
+                    )
+                    proposal.status = "WAITING_FOR_TIME"
+                    db.commit()
                     continue
 
                 start = ist_dt
                 end = ist_dt + timedelta(minutes=30)
 
-                # 🔥 GOOGLE CALENDAR CONFLICT CHECK (PRIMARY)
+                #  GOOGLE CALENDAR CONFLICT CHECK (PRIMARY)
                 google_free = is_google_calendar_free(
                     db, user_id, start, end
                 )
@@ -435,7 +481,7 @@ def process_replies(db, user_id: int):
                     print("📧 Google Calendar conflict → reschedule sent")
                     continue
 
-                # ✅ Create meeting
+                #  Create meeting
                 meeting_data = create_google_meet(
                     db=db,
                     user_id=user_id,
