@@ -3,6 +3,8 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
+.pytest_cache/
+.mypy_cache/
 .env
 .env.*
 
@@ -23,6 +25,19 @@ client_secret.json
 
 # Logs
 *.log
+
+# Celery / scheduler runtime files
+celerybeat-schedule
+celerybeat-schedule.*
+
+# Build artifacts
+build/
+dist/
+*.spec
+
+# IDE
+.vscode/
+.idea/
 
 # OS
 .DS_Store

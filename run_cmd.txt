@@ -1,0 +1,45 @@
+HOW TO RUN THIS PROJECT LOCALLY
+
+Use 4 terminals total.
+
+Project folder:
+C:\Users\nandh\OneDrive\Desktop\google_meet_ai - Copy
+
+TERMINAL 1: START REDIS
+If Redis container already exists:
+docker start redis
+
+If Redis container does not exist yet:
+docker run -d --name redis -p 6379:6379 redis:7
+
+Optional check:
+docker ps
+
+
+TERMINAL 2: START CELERY WORKER
+cd "C:\Users\nandh\OneDrive\Desktop\google_meet_ai - Copy"
+.\venv\Scripts\Activate.ps1
+celery -A app.services.new.celery worker --loglevel=info --pool=solo
+
+
+TERMINAL 3: START CELERY BEAT
+cd "C:\Users\nandh\OneDrive\Desktop\google_meet_ai - Copy"
+.\venv\Scripts\Activate.ps1
+celery -A app.services.new.celery beat --loglevel=info
+
+
+TERMINAL 4: START FASTAPI APP
+cd "C:\Users\nandh\OneDrive\Desktop\google_meet_ai - Copy"
+.\venv\Scripts\Activate.ps1
+uvicorn app.main:app --reload
+
+
+OPEN IN BROWSER
+http://127.0.0.1:8000
+
+
+QUICK CHECK
+- Redis should be running on port 6379
+- Celery worker should connect to Redis and stay running
+- Celery beat should start the scheduler and stay running
+- Uvicorn should show the app running on http://127.0.0.1:8000

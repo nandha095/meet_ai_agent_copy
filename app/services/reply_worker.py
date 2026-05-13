@@ -1,5 +1,5 @@
 from app.db.session import SessionLocal
-from app.services.reply_processor import process_replies
+from app.services.task import process_replies_task
 from app.models.user import User
 
 
@@ -9,23 +9,23 @@ def run_reply_worker():
         users = db.query(User).all()
 
         if not users:
-            print("⚠️ No users found. Skipping reply processing.")
+            print(" No users found. Skipping reply processing.")
             return
 
         for user in users:
             print(f"👤 Processing replies for user: {user.email}")
             try:
-                process_replies(db, user_id=user.id)
+                process_replies_task.delay(user.id)
             except Exception as e:
                 db.rollback()
                 print(
-                    f"❌ Error processing replies for user {user.email}: {e}"
+                    f" Error processing replies for user {user.email}: {e}"
                 )
 
     finally:
         db.close()
 
-# 🚀 REQUIRED so python -m works
+#  REQUIRED so python -m works
 if __name__ == "__main__":
-    print("🚀 Reply worker started manually")
+    print(" Reply worker started manually")
     run_reply_worker()

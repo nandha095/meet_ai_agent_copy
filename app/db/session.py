@@ -4,7 +4,7 @@ from typing import Generator
 
 from app.core.config import settings
 
-# ✅ MySQL engine (NO SQLite options)
+#  MySQL engine (NO SQLite options)
 engine = create_engine(
     settings.DATABASE_URL,
     pool_pre_ping=True

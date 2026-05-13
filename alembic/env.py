@@ -4,10 +4,10 @@ from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 from alembic import context
 
-# ✅ IMPORTANT: import Base
+#  IMPORTANT: import Base
 from app.db.base import Base
 
-# ✅ IMPORTANT: import ALL models so Alembic can see tables
+#  IMPORTANT: import ALL models so Alembic can see tables
 from app.models.user import User
 from app.models.proposal import Proposal
 from app.models.reply import Reply
@@ -17,6 +17,7 @@ from app.models.outlook_token import OutlookToken
 from app.models.oauth_state import OAuthState
 
 
+
 # this is the Alembic Config object
 config = context.config
 
@@ -24,7 +25,7 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# ✅ This is now correct
+#  This is now correct
 target_metadata = Base.metadata
 
 

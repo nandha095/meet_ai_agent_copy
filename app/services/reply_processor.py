@@ -195,7 +195,6 @@
 from datetime import datetime, timedelta
 import pytz
 import re
-
 from app.services.ai_intent import detect_meeting_intent
 from app.services.time_extractor import extract_time_and_timezone
 from app.services.llm_extractor import llm_extract_intent_and_time
@@ -286,7 +285,7 @@ def extract_email(sender: str) -> str:
 # MAIN PROCESSOR
 # -------------------------------------------------
 def process_replies(db, user_id: int):
-    print("🔥 process_replies CALLED for user_id:", user_id)
+    print(" process_replies CALLED for user_id:", user_id)
 
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
@@ -316,10 +315,10 @@ def process_replies(db, user_id: int):
         try:
             emails = provider.fetch_recent_emails(db, user_id)
         except Exception as e:
-            print(f"⚠️ Skipping {provider_name}: {e}")
+            print(f" Skipping {provider_name}: {e}")
             continue
 
-        print(f"📤 Reading inbox via {provider_name.upper()}")
+        print(f" Reading inbox via {provider_name.upper()}")
 
         for email in emails:
             try:
@@ -362,14 +361,27 @@ def process_replies(db, user_id: int):
                 print("Cleaned body:", body)
 
                 rule_intent = detect_meeting_intent(body)
-                print("🧠 Rule intent:", rule_intent)
-                print("🔍 Debug:", {"time_text": time_text, "ambiguous": is_ambiguous_time(body), "proposal_status": proposal.status, "provider": provider_name})
+                print(" Rule intent:", rule_intent)
+                print(" Debug:", {"time_text": time_text, "ambiguous": is_ambiguous_time(body), "proposal_status": proposal.status, "provider": provider_name})
 
-                # LLM fallback for intent when rule confidence is low
-                if rule_intent.get("confidence", 0) < 0.75:
+                # LLM fallback only for unclear/non-matching replies.
+                # This avoids calling LLM for clear positive replies like "yes".
+                if rule_intent["intent"] == "NO_INTEREST" and rule_intent.get("confidence", 0) < 0.75:
                     llm_result = llm_extract_intent_and_time(body)
+                    print("LLM raw result:", llm_result)
                     if llm_result and llm_result.get("intent"):
                         rule_intent = {"intent": llm_result["intent"], "confidence": 0.9}
+                        print("Intent after LLM:", rule_intent)
+                    else:
+                        print("LLM returned no usable intent")
+
+                # Guard: if LLM says CLIENT_PROVIDED_TIME but no parseable time exists, downgrade
+                if rule_intent["intent"] == "CLIENT_PROVIDED_TIME":
+                    extracted_check = extract_time_and_timezone(time_text)
+                    if not extracted_check:
+                        rule_intent = {"intent": "INTERESTED_NO_TIME", "confidence": 0.8}
+                        print("Adjusted intent (no parseable time):", rule_intent)
+
 
 
                 # Guard: if NO_INTEREST but contains time/ambiguous indicators, treat as interested
@@ -378,6 +390,9 @@ def process_replies(db, user_id: int):
                     has_tz_hint = bool(re.search(r"\b(ist|est|pst|gmt|utc|edt|pdt|mdt|mst|cdt|cst)\b", body, re.IGNORECASE))
                     if has_time_hint or has_tz_hint or is_ambiguous_time(body):
                         rule_intent = {"intent": "INTERESTED_NO_TIME", "confidence": 0.6}
+
+                print("Final intent used for routing:", rule_intent)
+                print("Current proposal status:", proposal.status)
 
                 reply = Reply(
                     user_id=user_id,
@@ -444,8 +459,8 @@ def process_replies(db, user_id: int):
                         client_tz = llm["timezone"]
 
                 if not ist_dt:
-                    print("⚠️ Time parsing failed for:", time_text)
-                    print("⚠️ Body was:", body)
+                    print(" Time parsing failed for:", time_text)
+                    print(" Body was:", body)
                     send_ambiguous_time_clarification_email(
                         db,
                         user_id,
@@ -478,7 +493,7 @@ def process_replies(db, user_id: int):
                         start,
                         alternatives,
                     )
-                    print("📧 Google Calendar conflict → reschedule sent")
+                    print(" Google Calendar conflict → reschedule sent")
                     continue
 
                 #  Create meeting
@@ -541,12 +556,12 @@ def process_replies(db, user_id: int):
                             meeting.meet_link,
                             meeting.start_time,
                         )
-                        print("📩 SMS sent")
+                        print(" SMS sent")
                     except Exception as e:
-                        print("⚠️ SMS failed:", e)
+                        print(" SMS failed:", e)
 
                 print("✅ Meeting scheduled")
 
             except Exception as e:
                 db.rollback()
-                print("❌ Reply processing error:", e)
+                print(" Reply processing error:", e)

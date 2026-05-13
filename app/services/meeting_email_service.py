@@ -328,7 +328,7 @@ def send_schedule_choice_email(
 <html>
   <body style="font-family: Arial, sans-serif; color: #333;">
     <p>Hi,</p>
-
+    <p>This is ai-meeting-agent, your scheduling assistant.</p>
     <p>Thank you for your interest in our proposal.</p>
 
     <p>
@@ -349,10 +349,12 @@ def send_schedule_choice_email(
       Friday, December 27th at 9:00 PM EST
     </p>
 
+  <!-- 
     <p>
       Alternatively, you may simply reply with:
       <strong>"You can schedule"</strong>
     </p>
+  -->
 
     <p>
       <strong>Note:</strong>
